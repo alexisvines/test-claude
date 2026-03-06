@@ -46,10 +46,101 @@ export function useExerciseDbGif(exerciseName: string) {
 // Keep original hook for fallback JPG images
 const GITHUB_BASE = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises'
 
+const FREE_EXERCISE_DB_MAP: Record<string, string> = {
+  // CHEST
+  'Barbell Bench Press':          'Barbell_Bench_Press_-_Medium_Grip',
+  'Incline Barbell Bench Press':  'Barbell_Incline_Bench_Press_-_Medium_Grip',
+  'Decline Bench Press':          'Barbell_Decline_Bench_Press',
+  'Dumbbell Bench Press':         'Dumbbell_Bench_Press',
+  'Incline Dumbbell Press':       'Dumbbell_Incline_Bench_Press',
+  'Chest Dips':                   'Chest_Dip',
+  'Cable Crossover':              'Cable_Crossover',
+  'Pec Deck Machine':             'Pec_Deck_Fly',
+  'Cable Fly':                    'Low_Cable_Crossover',
+  'Dumbbell Fly':                 'Dumbbell_Fly',
+  'Push-Up':                      'Push-up',
+  // BACK
+  'Deadlift':                     'Barbell_Deadlift',
+  'Pull-Up':                      'Pull-up',
+  'Chin-Up':                      'Chin-up',
+  'Barbell Row':                  'Barbell_Bent_Over_Row',
+  'Dumbbell Row':                 'Dumbbell_Bent_Over_Row',
+  'Lat Pulldown':                 'Cable_Pulldown',
+  'Cable Row':                    'Cable_Seated_Row',
+  'T-Bar Row':                    'T-Bar_Row_with_Handle',
+  'Face Pull':                    'Cable_Rear_Delt_Row',
+  'Romanian Deadlift':            'Romanian_Deadlift',
+  'Sumo Deadlift':                'Sumo_Deadlift',
+  'Back Extension':               'Back_Extension',
+  // SHOULDERS
+  'Overhead Press':               'Barbell_Shoulder_Press',
+  'Dumbbell Shoulder Press':      'Dumbbell_Shoulder_Press',
+  'Arnold Press':                 'Arnold_Dumbbell_Press',
+  'Lateral Raise':                'Dumbbell_Lateral_Raise',
+  'Cable Lateral Raise':          'Cable_Lateral_Raise',
+  'Rear Delt Fly':                'Bent_Over_Dumbbell_Rear_Delt_Row',
+  'Front Raise':                  'Dumbbell_Front_Raise',
+  // BICEPS
+  'Barbell Curl':                 'Barbell_Curl',
+  'EZ-Bar Curl':                  'EZ_Barbell_Curl',
+  'Dumbbell Curl':                'Dumbbell_Alternate_Bicep_Curl',
+  'Hammer Curl':                  'Hammer_Curl',
+  'Preacher Curl':                'Barbell_Preacher_Curl',
+  'Concentration Curl':           'Concentration_Curl',
+  'Cable Curl':                   'Cable_Curl',
+  // TRICEPS
+  'Close Grip Bench Press':       'Barbell_Close_Grip_Bench_Press',
+  'Skull Crusher / French Press': 'EZ_Barbell_Skull_Crusher',
+  'Overhead Tricep Extension':    'Dumbbell_Tricep_Extension',
+  'Cable Pushdown':               'Triceps_Pushdown',
+  'Cable Overhead Extension':     'Cable_Overhead_Tricep_Extension',
+  'Tricep Kickback':              'Dumbbell_Tricep_Kickback',
+  'Tricep Dips':                  'Tricep_Dip',
+  // QUADS
+  'Barbell Back Squat':           'Barbell_Squat',
+  'Front Squat':                  'Barbell_Front_Squat',
+  'Goblet Squat':                 'Dumbbell_Goblet_Squat',
+  'Leg Press':                    'Leg_Press',
+  'Hack Squat':                   'Hack_Squat',
+  'Leg Extension':                'Leg_Extension',
+  'Bulgarian Split Squat':        'Barbell_Bulgarian_Split_Squat',
+  'Walking Lunges':               'Barbell_Walking_Lunge',
+  // HAMSTRINGS
+  'Lying Leg Curl':               'Lying_Leg_Curl',
+  'Seated Leg Curl':              'Seated_Leg_Curl',
+  'Nordic Curl':                  'Body-Up',
+  // GLUTES
+  'Hip Thrust':                   'Barbell_Hip_Thrust',
+  'Glute Bridge':                 'Glute_Bridge',
+  'Cable Glute Kickback':         'Cable_Glute_Kickback',
+  'Hip Abductor Machine':         'Adductor',
+  // CALVES
+  'Standing Calf Raise':          'Standing_Calf_Raise',
+  'Seated Calf Raise':            'Seated_Calf_Raise',
+  // CORE
+  'Plank':                        'Plank',
+  'Side Plank':                   'Side_Plank',
+  'Crunch':                       'Crunch',
+  'Hanging Leg Raise':            'Hanging_Leg_Raise',
+  'Ab Wheel Rollout':             'Ab_Wheel_Rollout',
+  'Dragon Flag':                  'Dragon_Flag',
+  // TRAPS
+  'Barbell Shrug':                'Barbell_Shrug',
+  'Dumbbell Shrug':               'Dumbbell_Shrug',
+  // LATS
+  'Dumbbell Pullover':            'Dumbbell_Pullover',
+  'Straight Arm Pulldown':        'Straight_Arm_Dumbbell_Pullover',
+  // FOREARMS
+  'Wrist Curl':                   'Wrist_Curl',
+  'Reverse Curl':                 'Reverse_Curl',
+}
+
 export function useExerciseImages(exerciseName: string) {
-  const id = exerciseName.split(' ').join('_')
+  const mapped = FREE_EXERCISE_DB_MAP[exerciseName]
+  const id = mapped ?? exerciseName.split(' ').join('_')
+  const base = `${GITHUB_BASE}/${id}`
   return {
-    img0: `${GITHUB_BASE}/${id}/0.jpg`,
-    img1: `${GITHUB_BASE}/${id}/1.jpg`,
+    img0: `${base}/0.jpg`,
+    img1: `${base}/1.jpg`,
   }
 }
