@@ -4,7 +4,7 @@ import { motion } from 'motion/react'
 import { getContainer } from '@/infrastructure/container/DIContainer'
 import { MUSCLE_GROUPS, MUSCLE_GROUP_LABELS, type MuscleGroup } from '@/domain/value-objects/MuscleGroup'
 import { useDebounce } from '@/shared/hooks/useDebounce'
-import { useExerciseImages, useExerciseDbGif } from '@/shared/hooks/useExerciseGif'
+import { useExerciseImages, useExerciseDbGif, useExerciseThumbnail } from '@/shared/hooks/useExerciseGif'
 import { cn } from '@/shared/utils/cn'
 import type { Exercise } from '@/domain/entities/Exercise'
 
@@ -13,13 +13,39 @@ const EQUIPMENT_LABELS: Record<string, string> = {
   bodyweight: 'Peso corporal', kettlebell: 'Kettlebell', 'pull-up-bar': 'Barra fija', 'ez-bar': 'Barra EZ',
 }
 
-function ExerciseDetail({ exercise, onClose }: { exercise: Exercise; onClose: () => void }) {
-  const MUSCLE_EMOJIS: Record<string, string> = {
-    chest: '💪', back: '🔙', lats: '🦅', shoulders: '🏋️', biceps: '💪',
-    triceps: '💪', forearms: '🤜', quadriceps: '🦵', hamstrings: '🦵',
-    glutes: '🍑', calves: '🦶', core: '🎯', traps: '🐂',
+const MUSCLE_EMOJIS: Record<string, string> = {
+  chest: '💪', back: '🔙', lats: '🦅', shoulders: '🏋️', biceps: '💪',
+  triceps: '💪', forearms: '🤜', quadriceps: '🦵', hamstrings: '🦵',
+  glutes: '🍑', calves: '🦶', core: '🎯', traps: '🐂',
+}
+
+function ExerciseThumbnail({ exercise }: { exercise: Exercise }) {
+  const thumbnailUrl = useExerciseThumbnail(exercise.name)
+  const [error, setError] = useState(false)
+  const primaryEmoji = exercise.primaryMuscles[0] !== undefined
+    ? (MUSCLE_EMOJIS[exercise.primaryMuscles[0]] ?? '🏋️') : '🏋️'
+
+  if (error) {
+    return (
+      <div className="w-14 h-14 rounded-[var(--radius-md)] bg-[var(--color-surface-03)] flex items-center justify-center shrink-0 text-2xl">
+        {primaryEmoji}
+      </div>
+    )
   }
 
+  return (
+    <img
+      src={thumbnailUrl}
+      alt={exercise.nameEs}
+      loading="lazy"
+      decoding="async"
+      onError={() => setError(true)}
+      className="w-14 h-14 rounded-[var(--radius-md)] object-cover shrink-0 bg-[var(--color-surface-03)]"
+    />
+  )
+}
+
+function ExerciseDetail({ exercise, onClose }: { exercise: Exercise; onClose: () => void }) {
   const { data: gifUrl, isLoading: gifLoading } = useExerciseDbGif(exercise.name)
   const { img0, img1 } = useExerciseImages(exercise.name)
   const primaryEmoji = exercise.primaryMuscles[0] !== undefined ? (MUSCLE_EMOJIS[exercise.primaryMuscles[0]] ?? '🏋️') : '🏋️'
@@ -301,6 +327,7 @@ export function ExercisesPage() {
                 className="w-full text-left p-4 rounded-[var(--radius-md)] bg-[var(--color-surface-02)] border border-[var(--color-border)] hover:border-[var(--color-border-active)] transition-colors"
               >
                 <div className="flex items-center gap-3">
+                  <ExerciseThumbnail exercise={exercise} />
                   <div className="flex flex-col gap-1 flex-1 min-w-0">
                     <p className="font-semibold text-sm text-[var(--color-text-primary)] truncate">
                       {exercise.nameEs}
