@@ -108,12 +108,12 @@ const FREE_EXERCISE_DB_MAP: Record<string, string> = {
   // HAMSTRINGS
   'Lying Leg Curl':               'Lying_Leg_Curl',
   'Seated Leg Curl':              'Seated_Leg_Curl',
-  'Nordic Curl':                  'Body-Up',
+  'Nordic Curl':                  'Inverse_Leg_Curl',
   // GLUTES
   'Hip Thrust':                   'Barbell_Hip_Thrust',
   'Glute Bridge':                 'Glute_Bridge',
   'Cable Glute Kickback':         'Cable_Glute_Kickback',
-  'Hip Abductor Machine':         'Adductor',
+  'Hip Abductor Machine':         'Hip_Abductor',
   // CALVES
   'Standing Calf Raise':          'Standing_Calf_Raise',
   'Seated Calf Raise':            'Seated_Calf_Raise',
@@ -133,6 +133,12 @@ const FREE_EXERCISE_DB_MAP: Record<string, string> = {
   // FOREARMS
   'Wrist Curl':                   'Wrist_Curl',
   'Reverse Curl':                 'Reverse_Curl',
+}
+
+export function useExerciseThumbnail(exerciseName: string): string {
+  const mapped = FREE_EXERCISE_DB_MAP[exerciseName]
+  const id = mapped ?? exerciseName.split(' ').join('_')
+  return `${GITHUB_BASE}/${id}/0.jpg`
 }
 
 export function useExerciseImages(exerciseName: string) {
