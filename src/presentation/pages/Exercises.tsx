@@ -4,7 +4,7 @@ import { motion } from 'motion/react'
 import { getContainer } from '@/infrastructure/container/DIContainer'
 import { MUSCLE_GROUPS, MUSCLE_GROUP_LABELS, type MuscleGroup } from '@/domain/value-objects/MuscleGroup'
 import { useDebounce } from '@/shared/hooks/useDebounce'
-import { useExerciseImages } from '@/shared/hooks/useExerciseGif'
+import { useExerciseImages, useExerciseDbGif } from '@/shared/hooks/useExerciseGif'
 import { cn } from '@/shared/utils/cn'
 import type { Exercise } from '@/domain/entities/Exercise'
 
@@ -20,13 +20,16 @@ function ExerciseDetail({ exercise, onClose }: { exercise: Exercise; onClose: ()
     glutes: '🍑', calves: '🦶', core: '🎯', traps: '🐂',
   }
 
+  const { data: gifUrl, isLoading: gifLoading } = useExerciseDbGif(exercise.name)
   const { img0, img1 } = useExerciseImages(exercise.name)
   const primaryEmoji = exercise.primaryMuscles[0] !== undefined ? (MUSCLE_EMOJIS[exercise.primaryMuscles[0]] ?? '🏋️') : '🏋️'
   const [imgState, setImgState] = useState<'loading' | 'loaded' | 'error'>('loading')
+  const [gifError, setGifError] = useState(false)
   const [frame, setFrame] = useState(0)
 
   useEffect(() => {
     setImgState('loading')
+    setGifError(false)
     setFrame(0)
   }, [exercise.name])
 
@@ -56,39 +59,56 @@ function ExerciseDetail({ exercise, onClose }: { exercise: Exercise; onClose: ()
       </div>
 
       <div className="p-4 space-y-5">
-        {/* Exercise images — crossfade between start & end position */}
-        <div className="relative rounded-xl overflow-hidden bg-[var(--color-surface-02)]"
-          style={{ minHeight: imgState === 'error' ? '10rem' : '12rem' }}>
-          {imgState === 'loading' && (
+        {/* Exercise animation — GIF from ExerciseDB, fallback to JPG crossfade */}
+        <div
+          className="relative rounded-xl overflow-hidden bg-[var(--color-surface-02)]"
+          style={{ minHeight: '14rem' }}
+        >
+          {/* Skeleton while loading */}
+          {(gifLoading || (!gifUrl && !gifError && imgState === 'loading')) && (
             <div className="absolute inset-0 animate-pulse bg-[var(--color-surface-02)]" />
           )}
-          {imgState === 'error' ? (
-            <div className="h-40 flex items-center justify-center">
-              <span className="text-7xl">{primaryEmoji}</span>
-            </div>
-          ) : (
-            <>
-              <img
-                src={img0}
-                alt={exercise.nameEs}
-                onLoad={() => setImgState('loaded')}
-                onError={() => setImgState('error')}
-                className={cn(
-                  'w-full max-h-64 object-cover transition-opacity duration-700',
-                  imgState === 'loading' ? 'opacity-0' : frame === 0 ? 'opacity-100' : 'opacity-0'
-                )}
-              />
-              {imgState === 'loaded' && (
+
+          {/* Animated GIF from ExerciseDB */}
+          {gifUrl && !gifError ? (
+            <img
+              key={gifUrl}
+              src={gifUrl}
+              alt={exercise.nameEs}
+              onError={() => setGifError(true)}
+              className="w-full max-h-72 object-contain mx-auto"
+              style={{ background: 'var(--color-surface-02)' }}
+            />
+          ) : !gifLoading && (
+            /* Fallback: JPG crossfade */
+            imgState === 'error' ? (
+              <div className="h-40 flex items-center justify-center">
+                <span className="text-7xl">{primaryEmoji}</span>
+              </div>
+            ) : (
+              <>
                 <img
-                  src={img1}
+                  src={img0}
                   alt={exercise.nameEs}
+                  onLoad={() => setImgState('loaded')}
+                  onError={() => setImgState('error')}
                   className={cn(
-                    'absolute inset-0 w-full max-h-64 object-cover transition-opacity duration-700',
-                    frame === 1 ? 'opacity-100' : 'opacity-0'
+                    'w-full max-h-64 object-cover transition-opacity duration-700',
+                    imgState === 'loading' ? 'opacity-0' : frame === 0 ? 'opacity-100' : 'opacity-0'
                   )}
                 />
-              )}
-            </>
+                {imgState === 'loaded' && (
+                  <img
+                    src={img1}
+                    alt={exercise.nameEs}
+                    className={cn(
+                      'absolute inset-0 w-full max-h-64 object-cover transition-opacity duration-700',
+                      frame === 1 ? 'opacity-100' : 'opacity-0'
+                    )}
+                  />
+                )}
+              </>
+            )
           )}
         </div>
 
