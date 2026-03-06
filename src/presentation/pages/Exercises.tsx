@@ -4,6 +4,7 @@ import { motion } from 'motion/react'
 import { getContainer } from '@/infrastructure/container/DIContainer'
 import { MUSCLE_GROUPS, MUSCLE_GROUP_LABELS, type MuscleGroup } from '@/domain/value-objects/MuscleGroup'
 import { useDebounce } from '@/shared/hooks/useDebounce'
+import { useExerciseGif } from '@/shared/hooks/useExerciseGif'
 import { cn } from '@/shared/utils/cn'
 import type { Exercise } from '@/domain/entities/Exercise'
 
@@ -18,6 +19,9 @@ function ExerciseDetail({ exercise, onClose }: { exercise: Exercise; onClose: ()
     triceps: '💪', forearms: '🤜', quadriceps: '🦵', hamstrings: '🦵',
     glutes: '🍑', calves: '🦶', core: '🎯', traps: '🐂',
   }
+
+  const { data: gifUrl, isLoading: gifLoading } = useExerciseGif(exercise.name)
+  const primaryEmoji = MUSCLE_EMOJIS[exercise.primaryMuscles[0]] ?? '🏋️'
 
   return (
     <motion.div
@@ -39,6 +43,26 @@ function ExerciseDetail({ exercise, onClose }: { exercise: Exercise; onClose: ()
       </div>
 
       <div className="p-4 space-y-5">
+        {/* Exercise GIF */}
+        {gifLoading ? (
+          <div className="h-48 rounded-xl bg-[var(--color-surface-02)] animate-pulse" />
+        ) : gifUrl ? (
+          <motion.img
+            key={gifUrl}
+            src={gifUrl}
+            alt={exercise.nameEs}
+            loading="lazy"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4 }}
+            className="w-full max-h-64 object-cover rounded-xl bg-[var(--color-surface-02)]"
+          />
+        ) : (
+          <div className="h-40 rounded-xl bg-[var(--color-surface-02)] flex items-center justify-center">
+            <span className="text-7xl">{primaryEmoji}</span>
+          </div>
+        )}
+
         {/* Muscle groups */}
         <div>
           <p className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide mb-2">Músculos</p>
