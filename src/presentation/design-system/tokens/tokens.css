@@ -1,0 +1,129 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  /* === COLORES BASE === */
+  --color-base:              #060606;
+  --color-surface-01:        #0F0F0F;
+  --color-surface-02:        #161616;
+  --color-surface-03:        #1E1E1E;
+  --color-surface-elevated:  #242424;
+  --color-border:            rgba(255,255,255,0.08);
+  --color-border-active:     rgba(255,255,255,0.20);
+
+  /* Acento primario — Lima eléctrico */
+  --color-accent:            #C8FF00;
+  --color-accent-dim:        rgba(200, 255, 0, 0.15);
+  --color-accent-glow:       0 0 20px rgba(200, 255, 0, 0.4);
+
+  /* Semánticos */
+  --color-success:           #34C759;
+  --color-warning:           #FF9F0A;
+  --color-danger:            #FF2D55;
+  --color-info:              #0A84FF;
+
+  /* RIR específicos */
+  --color-rir-0:             #FF2D55;
+  --color-rir-1:             #FF6B35;
+  --color-rir-2:             #34C759;
+  --color-rir-3:             #30D158;
+  --color-rir-4:             #0A84FF;
+  --color-rir-5:             #5856D6;
+
+  /* Texto */
+  --color-text-primary:      #F5F5F5;
+  --color-text-secondary:    #8C8C8C;
+  --color-text-muted:        #484848;
+  --color-text-accent:       #C8FF00;
+
+  /* === TIPOGRAFÍA === */
+  --font-display:   'Barlow Condensed', system-ui, sans-serif;
+  --font-body:      'DM Sans', system-ui, sans-serif;
+  --font-mono:      'JetBrains Mono', monospace;
+
+  /* === ESPACIADO === */
+  --space-1:  4px;   --space-2:  8px;   --space-3: 12px;
+  --space-4: 16px;   --space-5: 20px;   --space-6: 24px;
+  --space-8: 32px;   --space-10: 40px;  --space-12: 48px;
+  --space-16: 64px;  --space-20: 80px;
+
+  /* === RADIOS === */
+  --radius-sm:  6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 9999px;
+
+  /* === ANIMACIONES === */
+  --duration-fast:   120ms;
+  --duration-normal: 250ms;
+  --duration-slow:   400ms;
+  --ease-spring:     cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out:        cubic-bezier(0.0, 0.0, 0.2, 1);
+  --ease-in-out:     cubic-bezier(0.4, 0.0, 0.2, 1);
+
+  /* === SOMBRAS === */
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.5);
+  --shadow-md:  0 4px 16px rgba(0,0,0,0.6);
+  --shadow-lg:  0 8px 32px rgba(0,0,0,0.7);
+  --shadow-accent: 0 0 20px rgba(200, 255, 0, 0.4);
+
+  /* === TAP TARGETS (Mobile-first) === */
+  --tap-min: 48px;
+  --tap-comfortable: 56px;
+  --tap-large: 64px;
+}
+
+/* === RESET Y BASE === */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: var(--color-base);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  line-height: 1.5;
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  display: flex;
+  flex-direction: column;
+}
+
+/* === SCROLLBAR === */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-border-active); border-radius: 2px; }
+
+/* === FOCUS VISIBLE === */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* === REDUCED MOTION === */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* === SAFE AREA === */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}

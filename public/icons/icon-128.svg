@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="25.6" fill="#060606"/>
+  <rect width="128" height="128" rx="25.6" fill="url(#bg)"/>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a1a1a"/>
+      <stop offset="100%" stop-color="#060606"/>
+    </linearGradient>
+  </defs>
+  <!-- Barbell icon -->
+  <g transform="translate(12.8, 38.4)">
+    <!-- Bar -->
+    <rect x="19.2" y="23.04" width="64" height="5.12" rx="2.56" fill="#C8FF00"/>
+    <!-- Left weight -->
+    <rect x="6.4" y="10.24" width="12.8" height="30.72" rx="3.84" fill="#C8FF00"/>
+    <!-- Right weight -->
+    <rect x="83.2" y="10.24" width="12.8" height="30.72" rx="3.84" fill="#C8FF00"/>
+    <!-- Clamps -->
+    <rect x="17.92" y="15.36" width="2.56" height="20.48" rx="1.28" fill="#8C8C8C"/>
+    <rect x="81.92" y="15.36" width="2.56" height="20.48" rx="1.28" fill="#8C8C8C"/>
+  </g>
+  <!-- "OS" text -->
+  <text x="64" y="104.96" text-anchor="middle" font-family="'Arial Black', Arial, sans-serif" font-weight="900" font-size="20.48" fill="#C8FF00" letter-spacing="-0.5">GymOS</text>
+</svg>
