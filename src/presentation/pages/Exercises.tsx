@@ -21,7 +21,7 @@ function ExerciseDetail({ exercise, onClose }: { exercise: Exercise; onClose: ()
   }
 
   const { data: gifUrl, isLoading: gifLoading } = useExerciseGif(exercise.name)
-  const primaryEmoji = MUSCLE_EMOJIS[exercise.primaryMuscles[0]] ?? '🏋️'
+  const primaryEmoji = exercise.primaryMuscles[0] !== undefined ? (MUSCLE_EMOJIS[exercise.primaryMuscles[0]] ?? '🏋️') : '🏋️'
 
   return (
     <motion.div
