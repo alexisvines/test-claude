@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'motion/react'
 import { getContainer } from '@/infrastructure/container/DIContainer'
 import { MUSCLE_GROUPS, MUSCLE_GROUP_LABELS, type MuscleGroup } from '@/domain/value-objects/MuscleGroup'
 import { useDebounce } from '@/shared/hooks/useDebounce'
-import { useExerciseGif } from '@/shared/hooks/useExerciseGif'
+import { useExerciseImages } from '@/shared/hooks/useExerciseGif'
 import { cn } from '@/shared/utils/cn'
 import type { Exercise } from '@/domain/entities/Exercise'
 
@@ -20,8 +20,21 @@ function ExerciseDetail({ exercise, onClose }: { exercise: Exercise; onClose: ()
     glutes: '🍑', calves: '🦶', core: '🎯', traps: '🐂',
   }
 
-  const { data: gifUrl, isLoading: gifLoading } = useExerciseGif(exercise.name)
+  const { img0, img1 } = useExerciseImages(exercise.name)
   const primaryEmoji = exercise.primaryMuscles[0] !== undefined ? (MUSCLE_EMOJIS[exercise.primaryMuscles[0]] ?? '🏋️') : '🏋️'
+  const [imgState, setImgState] = useState<'loading' | 'loaded' | 'error'>('loading')
+  const [frame, setFrame] = useState(0)
+
+  useEffect(() => {
+    setImgState('loading')
+    setFrame(0)
+  }, [exercise.name])
+
+  useEffect(() => {
+    if (imgState !== 'loaded') return
+    const id = setInterval(() => setFrame(f => (f === 0 ? 1 : 0)), 1500)
+    return () => clearInterval(id)
+  }, [imgState])
 
   return (
     <motion.div
@@ -43,25 +56,41 @@ function ExerciseDetail({ exercise, onClose }: { exercise: Exercise; onClose: ()
       </div>
 
       <div className="p-4 space-y-5">
-        {/* Exercise GIF */}
-        {gifLoading ? (
-          <div className="h-48 rounded-xl bg-[var(--color-surface-02)] animate-pulse" />
-        ) : gifUrl ? (
-          <motion.img
-            key={gifUrl}
-            src={gifUrl}
-            alt={exercise.nameEs}
-            loading="lazy"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.4 }}
-            className="w-full max-h-64 object-cover rounded-xl bg-[var(--color-surface-02)]"
-          />
-        ) : (
-          <div className="h-40 rounded-xl bg-[var(--color-surface-02)] flex items-center justify-center">
-            <span className="text-7xl">{primaryEmoji}</span>
-          </div>
-        )}
+        {/* Exercise images — crossfade between start & end position */}
+        <div className="relative rounded-xl overflow-hidden bg-[var(--color-surface-02)]"
+          style={{ minHeight: imgState === 'error' ? '10rem' : '12rem' }}>
+          {imgState === 'loading' && (
+            <div className="absolute inset-0 animate-pulse bg-[var(--color-surface-02)]" />
+          )}
+          {imgState === 'error' ? (
+            <div className="h-40 flex items-center justify-center">
+              <span className="text-7xl">{primaryEmoji}</span>
+            </div>
+          ) : (
+            <>
+              <img
+                src={img0}
+                alt={exercise.nameEs}
+                onLoad={() => setImgState('loaded')}
+                onError={() => setImgState('error')}
+                className={cn(
+                  'w-full max-h-64 object-cover transition-opacity duration-700',
+                  imgState === 'loading' ? 'opacity-0' : frame === 0 ? 'opacity-100' : 'opacity-0'
+                )}
+              />
+              {imgState === 'loaded' && (
+                <img
+                  src={img1}
+                  alt={exercise.nameEs}
+                  className={cn(
+                    'absolute inset-0 w-full max-h-64 object-cover transition-opacity duration-700',
+                    frame === 1 ? 'opacity-100' : 'opacity-0'
+                  )}
+                />
+              )}
+            </>
+          )}
+        </div>
 
         {/* Muscle groups */}
         <div>
