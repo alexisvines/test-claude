@@ -2,7 +2,7 @@ name: CI
 
 on:
   pull_request:
-    branches: [claude/build-gymos-fitness-4AGfj]
+    branches: [main]
 
 jobs:
   quality:
