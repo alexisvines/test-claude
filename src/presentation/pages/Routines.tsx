@@ -7,6 +7,7 @@ import { RepRange } from '@/domain/value-objects/RepRange'
 import { Button } from '@/presentation/design-system/components/Button'
 import { cn } from '@/shared/utils/cn'
 import { RoutineWizard } from '@/presentation/features/routines/components/RoutineWizard'
+import { PersonalizedWizard } from '@/presentation/features/routines/components/PersonalizedWizard'
 
 function RoutineCard({ routine, onDelete, onSetActive, isActive }: {
   routine: Routine
@@ -96,6 +97,7 @@ export function RoutinesPage() {
   const queryClient = useQueryClient()
   const [showCreate, setShowCreate] = useState(false)
   const [showWizard, setShowWizard] = useState(false)
+  const [showPersonalized, setShowPersonalized] = useState(false)
   const [newName, setNewName] = useState('')
 
   const { data: athlete } = useQuery({
@@ -171,6 +173,18 @@ export function RoutinesPage() {
             + Nueva
           </Button>
         </div>
+      </div>
+
+      {/* Personalized wizard CTA */}
+      <div className="rounded-[var(--radius-lg)] border border-[var(--color-accent)] bg-[var(--color-accent-dim)] p-4 flex items-center gap-4">
+        <span className="text-3xl shrink-0">✨</span>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-[var(--color-text-primary)]">Crear rutina a tu medida</p>
+          <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">Edad, objetivo, nivel y más — genera una rutina experta con cardio y RIR personalizados.</p>
+        </div>
+        <Button variant="accent" size="sm" onClick={() => setShowPersonalized(true)} className="shrink-0">
+          Comenzar
+        </Button>
       </div>
 
       {/* Wizard */}
@@ -277,6 +291,13 @@ export function RoutinesPage() {
       )}
 
       <div className="h-4" />
+
+      {/* Personalized wizard modal */}
+      <AnimatePresence>
+        {showPersonalized && (
+          <PersonalizedWizard onClose={() => setShowPersonalized(false)} />
+        )}
+      </AnimatePresence>
     </div>
   )
 }
