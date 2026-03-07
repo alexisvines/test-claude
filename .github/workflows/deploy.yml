@@ -2,7 +2,7 @@ name: Deploy GymOS to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [claude/feat-offline-mvp-rHST4]
   workflow_dispatch:
 
 permissions:
