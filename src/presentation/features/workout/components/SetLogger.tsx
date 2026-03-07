@@ -30,7 +30,8 @@ export function SetLogger({
   onLog,
   onCancel,
 }: Props) {
-  const [weight, setWeight] = useState(suggestedWeight)
+  const [weightStr, setWeightStr] = useState(String(suggestedWeight))
+  const weight = parseFloat(weightStr) || 0
   const [reps, setReps] = useState(suggestedReps)
   const [rir, setRir] = useState(2)
   const [rpe, setRpe] = useState(8)
@@ -43,7 +44,7 @@ export function SetLogger({
 
   function adjustWeight(delta: number) {
     vibrate(20)
-    setWeight(prev => Math.max(0, Math.round((prev + delta) * 10) / 10))
+    setWeightStr(String(Math.max(0, Math.round((weight + delta) * 10) / 10)))
   }
 
   function adjustReps(delta: number) {
@@ -76,8 +77,8 @@ export function SetLogger({
           </button>
           <input
             type="number"
-            value={weight}
-            onChange={e => setWeight(parseFloat(e.target.value) || 0)}
+            value={weightStr}
+            onChange={e => setWeightStr(e.target.value)}
             className="flex-1 h-16 text-center font-mono text-4xl font-bold bg-transparent text-[var(--color-text-primary)] border-0 outline-none"
             inputMode="decimal"
             aria-label="Peso"
@@ -189,7 +190,7 @@ export function SetLogger({
       {/* Actions */}
       <div className="flex gap-3">
         {onCancel && (
-          <Button variant="ghost" size="md" onClick={onCancel} className="flex-1">
+          <Button variant="ghost" size="md" onClick={onCancel} className="flex-1 text-gray-300">
             Cancelar
           </Button>
         )}
