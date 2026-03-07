@@ -6,6 +6,7 @@ import { Routine } from '@/domain/entities/Routine'
 import { RepRange } from '@/domain/value-objects/RepRange'
 import { Button } from '@/presentation/design-system/components/Button'
 import { cn } from '@/shared/utils/cn'
+import { RoutineWizard } from '@/presentation/features/routines/components/RoutineWizard'
 
 function RoutineCard({ routine, onDelete, onSetActive, isActive }: {
   routine: Routine
@@ -94,6 +95,7 @@ export function RoutinesPage() {
   const container = getContainer()
   const queryClient = useQueryClient()
   const [showCreate, setShowCreate] = useState(false)
+  const [showWizard, setShowWizard] = useState(false)
   const [newName, setNewName] = useState('')
 
   const { data: athlete } = useQuery({
@@ -161,10 +163,32 @@ export function RoutinesPage() {
     <div className="p-4 space-y-5 max-w-lg mx-auto">
       <div className="flex items-center justify-between pt-2">
         <h1 className="font-display text-3xl font-bold text-[var(--color-text-primary)]">Rutinas</h1>
-        <Button variant="primary" size="sm" onClick={() => setShowCreate(!showCreate)}>
-          + Nueva
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" size="sm" onClick={() => { setShowWizard(p => !p); setShowCreate(false) }}>
+            🧙 Asistente
+          </Button>
+          <Button variant="primary" size="sm" onClick={() => { setShowCreate(p => !p); setShowWizard(false) }}>
+            + Nueva
+          </Button>
+        </div>
       </div>
+
+      {/* Wizard */}
+      <AnimatePresence>
+        {showWizard && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <RoutineWizard
+              onSaved={() => setShowWizard(false)}
+              onCancel={() => setShowWizard(false)}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Create form */}
       <AnimatePresence>
