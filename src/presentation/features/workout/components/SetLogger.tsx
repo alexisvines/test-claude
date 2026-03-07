@@ -128,54 +128,63 @@ export function SetLogger({
         </div>
       </div>
 
-      {/* RIR */}
-      <div className="space-y-2">
-        <label className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide">
-          RIR — Reps en Reserva
-        </label>
-        <div className="grid grid-cols-6 gap-1">
-          {RIR_OPTIONS.map((r, i) => (
-            <button
-              key={r}
-              onClick={() => { vibrate(30); setRir(r) }}
-              className={cn(
-                'h-12 rounded-[var(--radius-sm)] text-sm font-bold transition-all active:scale-95',
-                rir === r ? 'text-black scale-105' : 'text-[var(--color-text-secondary)] bg-[var(--color-surface-03)]'
-              )}
-              style={rir === r ? { backgroundColor: RIR_COLORS[i] } : {}}
-              aria-label={`RIR ${r}: ${RIR_LABELS[i]}`}
-              aria-pressed={rir === r}
-            >
-              <div className="flex flex-col items-center">
-                <span>{r}</span>
-                <span className="text-[9px] leading-none opacity-80">{RIR_LABELS[i]}</span>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* Opciones Avanzadas (RIR + RPE) */}
+      <details className="group">
+        <summary className="cursor-pointer list-none flex items-center justify-between py-1 text-xs text-[var(--color-text-secondary)] uppercase tracking-wide select-none">
+          Opciones Avanzadas
+          <span className="transition-transform group-open:rotate-180 text-base">▾</span>
+        </summary>
+        <div className="space-y-4 pt-3">
+          {/* RIR */}
+          <div className="space-y-2">
+            <label className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide">
+              RIR — Reps en Reserva
+            </label>
+            <div className="grid grid-cols-6 gap-1">
+              {RIR_OPTIONS.map((r, i) => (
+                <button
+                  key={r}
+                  onClick={() => { vibrate(30); setRir(r) }}
+                  className={cn(
+                    'h-12 rounded-[var(--radius-sm)] text-sm font-bold transition-all active:scale-95',
+                    rir === r ? 'text-black scale-105' : 'text-[var(--color-text-secondary)] bg-[var(--color-surface-03)]'
+                  )}
+                  style={rir === r ? { backgroundColor: RIR_COLORS[i] } : {}}
+                  aria-label={`RIR ${r}: ${RIR_LABELS[i]}`}
+                  aria-pressed={rir === r}
+                >
+                  <div className="flex flex-col items-center">
+                    <span>{r}</span>
+                    <span className="text-[9px] leading-none opacity-80">{RIR_LABELS[i]}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
 
-      {/* RPE (optional) */}
-      <div className="space-y-2">
-        <label className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide">
-          RPE (opcional)
-        </label>
-        <input
-          type="range"
-          min={6}
-          max={10}
-          step={0.5}
-          value={rpe}
-          onChange={e => setRpe(parseFloat(e.target.value))}
-          className="w-full accent-[var(--color-accent)]"
-          aria-label={`RPE ${rpe}`}
-        />
-        <div className="flex justify-between text-xs text-[var(--color-text-muted)]">
-          <span>6 — Ligero</span>
-          <span className="text-[var(--color-text-secondary)] font-mono">RPE {rpe}</span>
-          <span>10 — Máximo</span>
+          {/* RPE (optional) */}
+          <div className="space-y-2">
+            <label className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide">
+              RPE (opcional)
+            </label>
+            <input
+              type="range"
+              min={6}
+              max={10}
+              step={0.5}
+              value={rpe}
+              onChange={e => setRpe(parseFloat(e.target.value))}
+              className="w-full accent-[var(--color-accent)]"
+              aria-label={`RPE ${rpe}`}
+            />
+            <div className="flex justify-between text-xs text-[var(--color-text-muted)]">
+              <span>6 — Ligero</span>
+              <span className="text-[var(--color-text-secondary)] font-mono">RPE {rpe}</span>
+              <span>10 — Máximo</span>
+            </div>
+          </div>
         </div>
-      </div>
+      </details>
 
       {/* Notes */}
       <input

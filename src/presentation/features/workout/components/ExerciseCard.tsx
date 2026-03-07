@@ -1,23 +1,27 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
+import {
+  Dumbbell, Target, Layers, Maximize2, Triangle, Grip,
+  Zap, Footprints, Circle, Mountain, type LucideIcon,
+} from 'lucide-react'
 import { cn } from '@/shared/utils/cn'
 import type { Exercise } from '@/domain/entities/Exercise'
 import { MUSCLE_GROUP_LABELS } from '@/domain/value-objects/MuscleGroup'
 
-const MUSCLE_EMOJIS: Record<string, string> = {
-  chest: '💪',
-  back: '🔙',
-  lats: '🦅',
-  shoulders: '🏋️',
-  biceps: '💪',
-  triceps: '💪',
-  forearms: '🤜',
-  quadriceps: '🦵',
-  hamstrings: '🦵',
-  glutes: '🍑',
-  calves: '🦶',
-  core: '🎯',
-  traps: '🐂',
+const MUSCLE_ICONS: Record<string, LucideIcon> = {
+  chest: Dumbbell,
+  back: Layers,
+  lats: Maximize2,
+  shoulders: Triangle,
+  biceps: Dumbbell,
+  triceps: Dumbbell,
+  forearms: Grip,
+  quadriceps: Zap,
+  hamstrings: Footprints,
+  glutes: Circle,
+  calves: Footprints,
+  core: Target,
+  traps: Mountain,
 }
 
 interface Props {
@@ -48,10 +52,15 @@ export function ExerciseCard({ exercise, setCount, targetSets, isActive, onClick
     >
       <div className="p-4">
         <div className="flex items-start gap-3">
-          {/* Muscle Emoji */}
-          <div className="text-2xl w-10 h-10 flex items-center justify-center bg-[var(--color-surface-03)] rounded-[var(--radius-md)]">
-            {MUSCLE_EMOJIS[exercise.primaryMuscles[0] ?? ''] ?? '🏋️'}
-          </div>
+          {/* Muscle Icon */}
+          {(() => {
+            const Icon = MUSCLE_ICONS[exercise.primaryMuscles[0] ?? ''] ?? Dumbbell
+            return (
+              <div className="w-10 h-10 flex items-center justify-center bg-[var(--color-surface-03)] rounded-[var(--radius-md)] text-[var(--color-text-secondary)]">
+                <Icon size={20} />
+              </div>
+            )
+          })()}
 
           {/* Info */}
           <div className="flex-1 min-w-0">
