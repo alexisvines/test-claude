@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, Component, type ErrorInfo, type ReactNode } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'motion/react'
 import { getContainer } from '@/infrastructure/container/DIContainer'
@@ -11,6 +11,37 @@ import { PersonalizedWizard } from '@/presentation/features/routines/components/
 import { useStartWorkout } from '@/presentation/features/workout/hooks/useStartWorkout'
 import { MUSCLE_GROUP_LABELS } from '@/domain/value-objects/MuscleGroup'
 
+/* ─── Error boundary for wizard ─── */
+class WizardErrorBoundary extends Component<
+  { children: ReactNode; onClose: () => void },
+  { hasError: boolean }
+> {
+  state = { hasError: false }
+  static getDerivedStateFromError() { return { hasError: true } }
+  componentDidCatch(error: Error, info: ErrorInfo) { console.error('[WizardError]', error, info) }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="bg-[var(--color-surface-02)] rounded-2xl p-6 max-w-sm mx-4 space-y-4 text-center border border-[var(--color-border)]">
+            <p className="text-3xl">⚠️</p>
+            <p className="font-semibold text-[var(--color-text-primary)]">Algo salió mal</p>
+            <p className="text-sm text-[var(--color-text-secondary)]">No se pudo cargar el asistente. Intenta de nuevo.</p>
+            <button
+              onClick={() => { this.setState({ hasError: false }); this.props.onClose() }}
+              className="w-full py-2.5 rounded-xl text-sm font-bold text-black"
+              style={{ backgroundColor: 'var(--color-accent)' }}
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
 const WEEK_LABELS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
 const MUSCLE_EMOJI: Record<string, string> = {
@@ -20,16 +51,20 @@ const MUSCLE_EMOJI: Record<string, string> = {
 }
 
 function getRoutineMuscles(routine: Routine): string[] {
-  const seen = new Set<string>()
-  for (const day of routine.days) {
-    if (!day.isRestDay) {
-      for (const ex of day.exercises) {
-        const m = ex.exerciseId.split('-')[0]
-        if (m) seen.add(m)
+  try {
+    const seen = new Set<string>()
+    for (const day of routine.days) {
+      if (!day.isRestDay && Array.isArray(day.exercises)) {
+        for (const ex of day.exercises) {
+          const m = ex.exerciseId?.split('-')[0]
+          if (m) seen.add(m)
+        }
       }
     }
+    return [...seen].slice(0, 5)
+  } catch {
+    return []
   }
-  return [...seen].slice(0, 5)
 }
 
 /* ─── Weekly strip (compact, shown inside card) ─── */
@@ -81,7 +116,7 @@ function WeekStrip({ days, isActive }: { days: readonly RoutineDay[]; isActive: 
                 {days[expandedDay]!.name}
                 {days[expandedDay]!.isRestDay ? ' · Descanso' : ` · ${days[expandedDay]!.exercises.length} ejercicios`}
               </p>
-              {!days[expandedDay]!.isRestDay && days[expandedDay]!.exercises.map((ex, j) => (
+              {!days[expandedDay]!.isRestDay && (days[expandedDay]!.exercises ?? []).map((ex, j) => (
                 <div key={j} className="flex items-center gap-2 text-xs">
                   <span className="text-[var(--color-accent)] font-mono font-bold w-6 shrink-0">{ex.sets}×</span>
                   <span className="text-[var(--color-text-primary)] flex-1 truncate">
@@ -111,7 +146,8 @@ function RoutineCard({ routine, onDelete, onSetActive, isActive, onStartWorkout,
 }) {
   const muscles = getRoutineMuscles(routine)
   const today = new Date().getDay()
-  const todayDay = routine.days[today % routine.days.length]
+  const daysLen = routine.days.length
+  const todayDay = daysLen > 0 ? routine.days[today % daysLen] : undefined
   const hasTodayWorkout = todayDay && !todayDay.isRestDay
 
   return (
@@ -517,11 +553,16 @@ export function RoutinesPage() {
       )}
 
       {/* Personalized wizard modal */}
-      <AnimatePresence>
-        {showPersonalized && (
-          <PersonalizedWizard onClose={() => setShowPersonalized(false)} />
-        )}
-      </AnimatePresence>
+      {showPersonalized && (
+        <WizardErrorBoundary onClose={() => setShowPersonalized(false)}>
+          <AnimatePresence>
+            <PersonalizedWizard
+              key="personalized-wizard"
+              onClose={() => setShowPersonalized(false)}
+            />
+          </AnimatePresence>
+        </WizardErrorBoundary>
+      )}
     </div>
   )
 }
