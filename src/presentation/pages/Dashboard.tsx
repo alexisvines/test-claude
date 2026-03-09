@@ -1,10 +1,11 @@
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { motion } from 'motion/react'
 import { getContainer } from '@/infrastructure/container/DIContainer'
 import { formatVolume, formatDate } from '@/shared/utils/formatters'
 import { cn } from '@/shared/utils/cn'
 import { useActiveWorkoutStore } from '@/presentation/features/workout/stores/activeWorkout.store'
+import { useStartWorkout } from '@/presentation/features/workout/hooks/useStartWorkout'
 import type { WorkoutSession } from '@/domain/entities/WorkoutSession'
 import type { Routine } from '@/domain/entities/Routine'
 
@@ -112,6 +113,7 @@ export function Dashboard() {
   const navigate = useNavigate()
   const container = getContainer()
   const store = useActiveWorkoutStore()
+  const startWorkoutMutation = useStartWorkout()
 
   const { data: athlete } = useQuery({
     queryKey: ['athlete'],
@@ -140,50 +142,6 @@ export function Dashboard() {
     queryKey: ['routine', athlete?.activeRoutineId],
     queryFn: () => athlete?.activeRoutineId ? container.routineRepo.findById(athlete.activeRoutineId) : null,
     enabled: !!athlete?.activeRoutineId,
-  })
-
-  const startWorkoutMutation = useMutation({
-    mutationFn: async () => {
-      if (!athlete) throw new Error('No athlete found')
-      const result = await container.startWorkoutHandler.handle({
-        athleteId: athlete.id,
-        routineId: athlete.activeRoutineId,
-      })
-      return result
-    },
-    onSuccess: (result) => {
-      store.setSession(result.sessionId, {
-        id: result.sessionId,
-        athleteId: athlete!.id,
-        routineId: athlete?.activeRoutineId,
-        routineName: result.routineName,
-        startedAt: new Date(),
-        sets: [],
-        status: 'active',
-      } as unknown as import('@/domain/entities/WorkoutSession').WorkoutSession)
-
-      if (athlete?.activeRoutineId) {
-        container.routineRepo.findById(athlete.activeRoutineId).then(routine => {
-          if (routine) {
-            const today = new Date().getDay() // 0=Sun, 1=Mon...
-            const todayDay = routine.days[today % routine.days.length]
-            if (todayDay && !todayDay.isRestDay) {
-              const exercises = todayDay.exercises.map(ex => ({
-                exercise: { id: ex.exerciseId } as import('@/domain/entities/Exercise').Exercise,
-                targetSets: ex.sets,
-                targetRepRange: ex.repRange,
-                targetRIR: ex.rirTarget,
-                restSeconds: ex.restSeconds,
-                loggedSets: [],
-              }))
-              store.setExercises(exercises)
-            }
-          }
-        }).catch(() => {/* ignore */})
-      }
-
-      void navigate({ to: '/workout' })
-    },
   })
 
   const unlockedAchievements = achievements.filter(a => a.isUnlocked).slice(-3).reverse()
@@ -329,7 +287,7 @@ export function Dashboard() {
         transition={{ type: 'spring', stiffness: 400, damping: 25, delay: 0.3 }}
       >
         <button
-          onClick={() => hasActiveSession ? void navigate({ to: '/workout' }) : startWorkoutMutation.mutate()}
+          onClick={() => hasActiveSession ? void navigate({ to: '/workout' }) : athlete && startWorkoutMutation.mutate({ athleteId: athlete.id, routineId: athlete.activeRoutineId })}
           disabled={startWorkoutMutation.isPending}
           className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-black shadow-[var(--shadow-accent)] active:scale-95 transition-transform"
           style={{ backgroundColor: 'var(--color-accent)' }}

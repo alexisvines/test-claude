@@ -22,11 +22,13 @@ const MUSCLE_EMOJIS: Record<string, string> = {
 
 function ExerciseThumbnail({ exercise }: { exercise: Exercise }) {
   const thumbnailUrl = useExerciseThumbnail(exercise.name)
-  const [error, setError] = useState(false)
+  const { data: gifUrl } = useExerciseDbGif(exercise.name)
+  const [stage, setStage] = useState<'thumb' | 'gif' | 'error'>('thumb')
   const primaryEmoji = exercise.primaryMuscles[0] !== undefined
     ? (MUSCLE_EMOJIS[exercise.primaryMuscles[0]] ?? '🏋️') : '🏋️'
 
-  if (error) {
+  // All sources exhausted or gif unavailable after thumb failed
+  if (stage === 'error' || (stage === 'gif' && !gifUrl)) {
     return (
       <div className="w-14 h-14 rounded-[var(--radius-md)] bg-[var(--color-surface-03)] flex items-center justify-center shrink-0 text-2xl">
         {primaryEmoji}
@@ -34,13 +36,18 @@ function ExerciseThumbnail({ exercise }: { exercise: Exercise }) {
     )
   }
 
+  const src = stage === 'thumb' ? thumbnailUrl : gifUrl!
+
   return (
     <img
-      src={thumbnailUrl}
+      src={src}
       alt={exercise.nameEs}
       loading="lazy"
       decoding="async"
-      onError={() => setError(true)}
+      onError={() => {
+        if (stage === 'thumb') setStage('gif')
+        else setStage('error')
+      }}
       className="w-14 h-14 rounded-[var(--radius-md)] object-cover shrink-0 bg-[var(--color-surface-03)]"
     />
   )
