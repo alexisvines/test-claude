@@ -11,25 +11,65 @@ interface ExerciseDbItem {
   equipment: string
 }
 
-async function fetchExerciseGifUrl(exerciseName: string): Promise<string | null> {
-  const name = exerciseName.toLowerCase()
-  const res = await fetch(
-    `${EXERCISEDB_BASE}/exercises/name/${encodeURIComponent(name)}?limit=5`,
-    { signal: AbortSignal.timeout(6000) }
+/** Generate multiple name variants to maximize ExerciseDB match rate */
+function getNameVariants(exerciseName: string): string[] {
+  const base = exerciseName.toLowerCase()
+  const variants: string[] = [base]
+
+  // "Skull Crusher / French Press" → try each part separately
+  if (base.includes(' / ')) {
+    variants.push(...base.split(' / ').map(p => p.trim()))
+  }
+
+  // "Pull-Up", "T-Bar Row", "EZ-Bar Curl" → remove hyphens
+  if (base.includes('-')) {
+    variants.push(base.replace(/-/g, ' '))
+  }
+
+  // "Pec Deck Machine", "Hip Abductor Machine" → strip " machine"
+  if (base.endsWith(' machine')) {
+    variants.push(base.slice(0, -8).trim())
+  }
+
+  // Strip common equipment prefixes for a broader search
+  const stripped = base.replace(
+    /^(barbell|dumbbell|cable|ez-bar|ez bar|resistance band|seated|standing|lying) /,
+    ''
   )
+  if (stripped !== base) variants.push(stripped)
 
-  if (!res.ok) return null
+  return [...new Set(variants)]
+}
 
-  const data: unknown = await res.json()
-  const exercises: ExerciseDbItem[] = Array.isArray(data)
-    ? (data as ExerciseDbItem[])
-    : ((data as Record<string, unknown>).exercises as ExerciseDbItem[] | undefined) ?? []
+async function fetchExerciseGifUrl(exerciseName: string): Promise<string | null> {
+  const variants = getNameVariants(exerciseName)
 
-  if (!exercises.length) return null
+  for (const variant of variants) {
+    let res: Response
+    try {
+      res = await fetch(
+        `${EXERCISEDB_BASE}/exercises/name/${encodeURIComponent(variant)}?limit=5`,
+        { signal: AbortSignal.timeout(8000) }
+      )
+    } catch {
+      continue
+    }
 
-  const exact = exercises.find(e => e.name.toLowerCase() === name)
-  const match = exact ?? exercises[0]
-  return match?.gifUrl ?? null
+    if (!res.ok) continue
+
+    const data: unknown = await res.json()
+    const exercises: ExerciseDbItem[] = Array.isArray(data)
+      ? (data as ExerciseDbItem[])
+      : ((data as Record<string, unknown>).exercises as ExerciseDbItem[] | undefined) ?? []
+
+    if (!exercises.length) continue
+
+    const exact = exercises.find(e => e.name.toLowerCase() === variant)
+    const match = exact ?? exercises[0]
+    if (match?.gifUrl) return match.gifUrl
+  }
+
+  return null
 }
 
 export function useExerciseDbGif(exerciseName: string) {
