@@ -22,13 +22,15 @@ const MUSCLE_EMOJIS: Record<string, string> = {
 
 function ExerciseThumbnail({ exercise }: { exercise: Exercise }) {
   const thumbnailUrl = useExerciseThumbnail(exercise.name)
-  const { data: gifUrl } = useExerciseDbGif(exercise.name)
   const [stage, setStage] = useState<'thumb' | 'gif' | 'error'>('thumb')
+  // Only fire the API query when GitHub JPG failed — avoids 73 simultaneous requests on list load
+  const { data: gifUrl, isLoading: gifLoading } = useExerciseDbGif(
+    stage === 'gif' ? exercise.name : ''
+  )
   const primaryEmoji = exercise.primaryMuscles[0] !== undefined
     ? (MUSCLE_EMOJIS[exercise.primaryMuscles[0]] ?? '🏋️') : '🏋️'
 
-  // All sources exhausted or gif unavailable after thumb failed
-  if (stage === 'error' || (stage === 'gif' && !gifUrl)) {
+  if (stage === 'error') {
     return (
       <div className="w-14 h-14 rounded-[var(--radius-md)] bg-[var(--color-surface-03)] flex items-center justify-center shrink-0 text-2xl">
         {primaryEmoji}
@@ -36,18 +38,38 @@ function ExerciseThumbnail({ exercise }: { exercise: Exercise }) {
     )
   }
 
-  const src = stage === 'thumb' ? thumbnailUrl : gifUrl!
+  if (stage === 'gif') {
+    // Show skeleton while the API request is in-flight (prevents race condition)
+    if (gifLoading) {
+      return <div className="w-14 h-14 rounded-[var(--radius-md)] bg-[var(--color-surface-03)] animate-pulse shrink-0" />
+    }
+    if (!gifUrl) {
+      return (
+        <div className="w-14 h-14 rounded-[var(--radius-md)] bg-[var(--color-surface-03)] flex items-center justify-center shrink-0 text-2xl">
+          {primaryEmoji}
+        </div>
+      )
+    }
+    return (
+      <img
+        src={gifUrl}
+        alt={exercise.nameEs}
+        loading="lazy"
+        decoding="async"
+        onError={() => setStage('error')}
+        className="w-14 h-14 rounded-[var(--radius-md)] object-cover shrink-0 bg-[var(--color-surface-03)]"
+      />
+    )
+  }
 
+  // stage === 'thumb' — try GitHub static JPG first
   return (
     <img
-      src={src}
+      src={thumbnailUrl}
       alt={exercise.nameEs}
       loading="lazy"
       decoding="async"
-      onError={() => {
-        if (stage === 'thumb') setStage('gif')
-        else setStage('error')
-      }}
+      onError={() => setStage('gif')}
       className="w-14 h-14 rounded-[var(--radius-md)] object-cover shrink-0 bg-[var(--color-surface-03)]"
     />
   )
