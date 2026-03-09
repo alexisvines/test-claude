@@ -6,6 +6,7 @@ import { formatVolume, formatDate } from '@/shared/utils/formatters'
 import { cn } from '@/shared/utils/cn'
 import { useActiveWorkoutStore } from '@/presentation/features/workout/stores/activeWorkout.store'
 import type { WorkoutSession } from '@/domain/entities/WorkoutSession'
+import type { Routine } from '@/domain/entities/Routine'
 
 function StatCard({ label, value, icon, accent }: { label: string; value: string; icon: string; accent?: boolean }) {
   return (
@@ -45,6 +46,43 @@ function StreakCard({ days }: { days: number }) {
           </p>
         </div>
       )}
+    </div>
+  )
+}
+
+const DAY_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+const MUSCLE_DAY_EMOJI: Record<string, string> = {
+  chest: '💪', back: '🔙', lats: '🔙', shoulders: '🏋️', biceps: '💪',
+  triceps: '💪', forearms: '🤜', quadriceps: '🦵', hamstrings: '🦵',
+  glutes: '🍑', calves: '🦶', core: '🎯', traps: '🐂',
+}
+
+function TodayCard({ routine }: { routine: Routine }) {
+  const today = new Date().getDay()
+  const day = routine.days[today % routine.days.length]
+  if (!day) return null
+
+  const primaryMuscleKey = day.isRestDay ? null : day.exercises[0]?.exerciseId.split('-')[0]
+  const emoji = day.isRestDay ? '😴' : (primaryMuscleKey ? (MUSCLE_DAY_EMOJI[primaryMuscleKey] ?? '🏋️') : '🏋️')
+  const label = day.isRestDay ? 'Día de descanso' : day.name
+
+  return (
+    <div className="rounded-[var(--radius-lg)] p-4 bg-[var(--color-surface-02)] border border-[var(--color-border)]">
+      <p className="text-xs text-[var(--color-text-muted)] uppercase tracking-wide mb-1">
+        Hoy · {DAY_SHORT[today]}
+      </p>
+      <div className="flex items-center gap-3">
+        <span className="text-3xl">{emoji}</span>
+        <div>
+          <p className="font-semibold text-[var(--color-text-primary)]">{label}</p>
+          {!day.isRestDay && (
+            <p className="text-xs text-[var(--color-text-secondary)]">
+              {day.exercises.length} ejercicio{day.exercises.length !== 1 ? 's' : ''}
+            </p>
+          )}
+        </div>
+        <p className="ml-auto text-xs text-[var(--color-accent)] font-semibold">{routine.name}</p>
+      </div>
     </div>
   )
 }
@@ -96,6 +134,12 @@ export function Dashboard() {
       return container.athleteRepo.getAchievements(athlete.id)
     },
     enabled: !!athlete,
+  })
+
+  const { data: activeRoutine } = useQuery({
+    queryKey: ['routine', athlete?.activeRoutineId],
+    queryFn: () => athlete?.activeRoutineId ? container.routineRepo.findById(athlete.activeRoutineId) : null,
+    enabled: !!athlete?.activeRoutineId,
   })
 
   const startWorkoutMutation = useMutation({
@@ -160,8 +204,17 @@ export function Dashboard() {
           </h1>
           <p className="text-sm text-[var(--color-accent)]">{athlete?.levelLabel ?? 'Novato'}</p>
         </div>
-        <div className="w-12 h-12 rounded-full bg-[var(--color-surface-03)] flex items-center justify-center text-2xl">
-          {athlete?.level === 'leyenda' ? '🌟' : athlete?.level === 'elite' ? '💎' : '🏋️'}
+        <div className="flex items-center gap-2">
+          <div className="w-12 h-12 rounded-full bg-[var(--color-surface-03)] flex items-center justify-center text-2xl">
+            {athlete?.level === 'leyenda' ? '🌟' : athlete?.level === 'elite' ? '💎' : '🏋️'}
+          </div>
+          <button
+            onClick={() => void navigate({ to: '/settings' })}
+            className="w-10 h-10 rounded-full bg-[var(--color-surface-02)] flex items-center justify-center text-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+            aria-label="Ajustes"
+          >
+            ⚙️
+          </button>
         </div>
       </motion.div>
 
@@ -178,6 +231,11 @@ export function Dashboard() {
             <p className="text-[var(--color-success)] font-semibold">Entrenamiento activo — Continúa</p>
           </div>
         </motion.div>
+      )}
+
+      {/* Today's workout from active routine */}
+      {activeRoutine && !hasActiveSession && (
+        <TodayCard routine={activeRoutine} />
       )}
 
       {/* Streak */}

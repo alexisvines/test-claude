@@ -5,9 +5,9 @@ import { useActiveWorkoutStore } from '@/presentation/features/workout/stores/ac
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Inicio', icon: '🏠' },
   { to: '/workout', label: 'Entreno', icon: '⚡', isAccent: true },
+  { to: '/routines', label: 'Rutinas', icon: '📋' },
   { to: '/exercises', label: 'Ejercicios', icon: '🔍' },
   { to: '/progress', label: 'Progreso', icon: '📈' },
-  { to: '/settings', label: 'Ajustes', icon: '⚙️' },
 ] as const
 
 export function BottomNav() {

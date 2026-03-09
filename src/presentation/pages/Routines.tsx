@@ -2,12 +2,93 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'motion/react'
 import { getContainer } from '@/infrastructure/container/DIContainer'
-import { Routine } from '@/domain/entities/Routine'
+import { Routine, type RoutineDay } from '@/domain/entities/Routine'
 import { RepRange } from '@/domain/value-objects/RepRange'
 import { Button } from '@/presentation/design-system/components/Button'
 import { cn } from '@/shared/utils/cn'
 import { RoutineWizard } from '@/presentation/features/routines/components/RoutineWizard'
 import { PersonalizedWizard } from '@/presentation/features/routines/components/PersonalizedWizard'
+
+const WEEK_LABELS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+const MUSCLE_DAY_EMOJI: Record<string, string> = {
+  chest: '💪', back: '🔙', lats: '🔙', shoulders: '🏋️', biceps: '💪',
+  triceps: '💪', forearms: '🤜', quadriceps: '🦵', hamstrings: '🦵',
+  glutes: '🍑', calves: '🦶', core: '🎯', traps: '🐂',
+  push: '💪', pull: '🔙', legs: '🦵',
+}
+
+function WeeklyView({ days }: { days: readonly RoutineDay[] }) {
+  const [expandedDay, setExpandedDay] = useState<number | null>(null)
+  const todayIndex = (new Date().getDay() + 6) % 7 // Mon=0…Sun=6
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide">
+        Vista semanal
+      </p>
+      <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${Math.min(days.length, 7)}, 1fr)` }}>
+        {days.slice(0, 7).map((day, i) => {
+          const muscleKey = day.isRestDay ? null : day.exercises[0]?.exerciseId.split('-')[0]
+          const emoji = day.isRestDay ? '😴' : (muscleKey ? (MUSCLE_DAY_EMOJI[muscleKey] ?? '🏋️') : '🏋️')
+          const isToday = i === todayIndex % days.length
+          return (
+            <button
+              key={day.id}
+              onClick={() => setExpandedDay(expandedDay === i ? null : i)}
+              className={cn(
+                'flex flex-col items-center gap-1 p-2 rounded-[var(--radius-md)] transition-colors',
+                day.isRestDay
+                  ? 'bg-[var(--color-surface-01)] opacity-50'
+                  : 'bg-[var(--color-surface-02)] hover:bg-[var(--color-surface-03)]',
+                isToday && 'ring-1 ring-[var(--color-accent)]',
+                expandedDay === i && 'bg-[var(--color-surface-03)]'
+              )}
+            >
+              <span className={cn(
+                'text-[10px] font-bold uppercase',
+                isToday ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-muted)]'
+              )}>
+                {WEEK_LABELS[i] ?? `D${i + 1}`}
+              </span>
+              <span className="text-lg leading-none">{emoji}</span>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Expanded day detail */}
+      <AnimatePresence>
+        {expandedDay !== null && days[expandedDay] && (
+          <motion.div
+            key={expandedDay}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="bg-[var(--color-surface-03)] rounded-[var(--radius-md)] p-3 space-y-1">
+              <p className="text-xs font-semibold text-[var(--color-accent)] mb-2">
+                {days[expandedDay]!.name}
+                {days[expandedDay]!.isRestDay ? ' — Descanso' : ` — ${days[expandedDay]!.exercises.length} ejercicios`}
+              </p>
+              {!days[expandedDay]!.isRestDay && days[expandedDay]!.exercises.map((ex, j) => (
+                <div key={j} className="flex items-center gap-2 text-xs text-[var(--color-text-secondary)]">
+                  <span className="text-[var(--color-accent)] font-mono font-bold w-6">{ex.sets}×</span>
+                  <span className="text-[var(--color-text-primary)]">
+                    {ex.exerciseId.split('-').slice(1).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                  </span>
+                  <span className="ml-auto text-[var(--color-text-muted)]">
+                    {ex.repRange.min}-{ex.repRange.max} reps
+                  </span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
 
 function RoutineCard({ routine, onDelete, onSetActive, isActive }: {
   routine: Routine
@@ -58,21 +139,10 @@ function RoutineCard({ routine, onDelete, onSetActive, isActive }: {
             exit={{ height: 0 }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 space-y-2 bg-[var(--color-surface-01)]">
-              {routine.days.map(day => (
-                <div key={day.id} className="pt-3">
-                  <p className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide mb-2">
-                    {day.name} {day.isRestDay ? '(Descanso)' : ''}
-                  </p>
-                  {!day.isRestDay && day.exercises.map((ex, i) => (
-                    <div key={i} className="text-sm text-[var(--color-text-secondary)] flex gap-2 py-1">
-                      <span className="text-[var(--color-accent)] font-mono">{ex.sets}×</span>
-                      <span>{ex.repRange.min}-{ex.repRange.max} reps</span>
-                      <span className="text-[var(--color-text-muted)]">· {ex.exerciseId.split('-').slice(1).join(' ')}</span>
-                    </div>
-                  ))}
-                </div>
-              ))}
+            <div className="px-4 pb-4 space-y-4 bg-[var(--color-surface-01)]">
+              <div className="pt-3">
+                <WeeklyView days={routine.days} />
+              </div>
 
               <div className="flex gap-2 pt-2 border-t border-[var(--color-border)]">
                 {!isActive && (

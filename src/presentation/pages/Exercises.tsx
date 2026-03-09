@@ -7,6 +7,7 @@ import { useDebounce } from '@/shared/hooks/useDebounce'
 import { useExerciseImages, useExerciseDbGif, useExerciseThumbnail } from '@/shared/hooks/useExerciseGif'
 import { cn } from '@/shared/utils/cn'
 import type { Exercise } from '@/domain/entities/Exercise'
+import { MuscleDiagram } from '@/presentation/features/exercises/components/MuscleDiagram'
 
 const EQUIPMENT_LABELS: Record<string, string> = {
   barbell: 'Barra', dumbbell: 'Mancuerna', cable: 'Polea', machine: 'Máquina',
@@ -138,27 +139,46 @@ function ExerciseDetail({ exercise, onClose }: { exercise: Exercise; onClose: ()
           )}
         </div>
 
-        {/* Muscle groups */}
+        {/* Muscle groups + Diagram */}
         <div>
-          <p className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide mb-2">Músculos</p>
-          <div className="flex flex-wrap gap-2">
-            {exercise.primaryMuscles.map(m => (
-              <span
-                key={m}
-                className="px-3 py-1 rounded-full text-sm font-semibold text-black"
-                style={{ backgroundColor: 'var(--color-accent)' }}
-              >
-                {MUSCLE_EMOJIS[m]} {MUSCLE_GROUP_LABELS[m]}
-              </span>
-            ))}
-            {exercise.muscleGroups.secondary.map(m => (
-              <span
-                key={m}
-                className="px-3 py-1 rounded-full text-sm border border-[var(--color-border)] text-[var(--color-text-secondary)]"
-              >
-                {MUSCLE_GROUP_LABELS[m]}
-              </span>
-            ))}
+          <p className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide mb-2">Músculos trabajados</p>
+          <div className="flex gap-4 items-start">
+            <div className="flex-1">
+              <div className="flex flex-wrap gap-2 mb-3">
+                {exercise.primaryMuscles.map(m => (
+                  <span
+                    key={m}
+                    className="px-3 py-1 rounded-full text-sm font-semibold text-black"
+                    style={{ backgroundColor: 'var(--color-accent)' }}
+                  >
+                    {MUSCLE_EMOJIS[m]} {MUSCLE_GROUP_LABELS[m]}
+                  </span>
+                ))}
+                {exercise.muscleGroups.secondary.map(m => (
+                  <span
+                    key={m}
+                    className="px-3 py-1 rounded-full text-sm border border-[var(--color-border)] text-[var(--color-text-secondary)]"
+                  >
+                    {MUSCLE_GROUP_LABELS[m]}
+                  </span>
+                ))}
+              </div>
+              <div className="flex gap-3 text-xs text-[var(--color-text-muted)]">
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: '#39FF14' }} />
+                  Principal
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: '#22c55e' }} />
+                  Secundario
+                </span>
+              </div>
+            </div>
+            <MuscleDiagram
+              primary={exercise.primaryMuscles}
+              secondary={exercise.muscleGroups.secondary}
+              size="sm"
+            />
           </div>
         </div>
 

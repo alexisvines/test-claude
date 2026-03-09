@@ -7,6 +7,8 @@ import {
 import { cn } from '@/shared/utils/cn'
 import type { Exercise } from '@/domain/entities/Exercise'
 import { MUSCLE_GROUP_LABELS } from '@/domain/value-objects/MuscleGroup'
+import { MuscleDiagram } from '@/presentation/features/exercises/components/MuscleDiagram'
+import { useExerciseThumbnail } from '@/shared/hooks/useExerciseGif'
 
 const MUSCLE_ICONS: Record<string, LucideIcon> = {
   chest: Dumbbell,
@@ -22,6 +24,38 @@ const MUSCLE_ICONS: Record<string, LucideIcon> = {
   calves: Footprints,
   core: Target,
   traps: Mountain,
+}
+
+function ExerciseMediaRow({ exercise }: { exercise: Exercise }) {
+  const thumbnailUrl = useExerciseThumbnail(exercise.name)
+  const [imgError, setImgError] = useState(false)
+
+  return (
+    <div className="flex gap-3 pt-3 items-center">
+      {/* Exercise image */}
+      <div className="w-24 h-24 rounded-[var(--radius-md)] bg-[var(--color-surface-03)] overflow-hidden shrink-0 flex items-center justify-center">
+        {imgError ? (
+          <span className="text-3xl">🏋️</span>
+        ) : (
+          <img
+            src={thumbnailUrl}
+            alt={exercise.nameEs}
+            loading="lazy"
+            onError={() => setImgError(true)}
+            className="w-full h-full object-cover"
+          />
+        )}
+      </div>
+      {/* Muscle diagram */}
+      <div className="flex-1 flex justify-center">
+        <MuscleDiagram
+          primary={exercise.primaryMuscles}
+          secondary={exercise.muscleGroups.secondary}
+          size="sm"
+        />
+      </div>
+    </div>
+  )
 }
 
 interface Props {
@@ -120,8 +154,11 @@ export function ExerciseCard({ exercise, setCount, targetSets, isActive, onClick
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 space-y-2 border-t border-[var(--color-border)]">
-              <p className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide pt-3">
+            <div className="px-4 pb-4 space-y-3 border-t border-[var(--color-border)]">
+              {/* Image + Muscle diagram side by side */}
+              <ExerciseMediaRow exercise={exercise} />
+
+              <p className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide pt-1">
                 Instrucciones
               </p>
               <ol className="space-y-1">
