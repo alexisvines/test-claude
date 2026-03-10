@@ -61,7 +61,7 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
       set(state => {
         state.sessionId = sessionId
         state.session = castDraft(session)
-        state.startedAt = new Date()
+        state.startedAt = session.startedAt instanceof Date ? session.startedAt : new Date()
       }),
 
     setExercises: (exercises) =>
