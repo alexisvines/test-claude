@@ -210,7 +210,15 @@ function ActiveSetInput({
 
   return (
     <div className="px-3 pb-3 pt-2 space-y-2 bg-[var(--color-accent-dim)]/20 rounded-b-xl border-t border-[var(--color-border)]">
-      {/* Main row: SET# | KG | REPS | ✓ — sin botones −/+ para que no se salga de pantalla */}
+      {/* Labels row */}
+      <div className="grid grid-cols-[28px_1fr_1fr_44px] gap-2">
+        <span />
+        <span className="text-[10px] text-[var(--color-text-muted)] text-center font-semibold uppercase tracking-wide">Peso (kg)</span>
+        <span className="text-[10px] text-[var(--color-text-muted)] text-center font-semibold uppercase tracking-wide">Reps</span>
+        <span />
+      </div>
+
+      {/* Main row: SET# | KG | REPS | ✓ */}
       <div className="grid grid-cols-[28px_1fr_1fr_44px] gap-2 items-center">
         <span className="font-mono text-[var(--color-accent)] text-xs font-bold text-center">{setNumber}</span>
 
@@ -219,7 +227,7 @@ function ActiveSetInput({
           type="number"
           value={weight === 0 ? '' : weight}
           onChange={e => setWeight(parseFloat(e.target.value) || 0)}
-          placeholder="kg"
+          placeholder="0"
           className="w-full text-center font-mono font-bold text-lg bg-[var(--color-surface-03)] rounded-xl py-2 text-[var(--color-text-primary)] border border-[var(--color-border)] focus:border-[var(--color-accent)] outline-none"
           inputMode="decimal"
         />
