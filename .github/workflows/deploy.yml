@@ -2,7 +2,7 @@ name: Deploy Kova to GitHub Pages
 
 on:
   push:
-    branches: [claude/feat-offline-mvp-rHST4]
+    branches: [claude/**]
   workflow_dispatch:
 
 permissions:
