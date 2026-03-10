@@ -4,7 +4,7 @@ import { motion } from 'motion/react'
 import { getContainer } from '@/infrastructure/container/DIContainer'
 import { MUSCLE_GROUPS, MUSCLE_GROUP_LABELS, type MuscleGroup } from '@/domain/value-objects/MuscleGroup'
 import { useDebounce } from '@/shared/hooks/useDebounce'
-import { useExerciseImages, useExerciseDbGif, useExerciseThumbnail } from '@/shared/hooks/useExerciseGif'
+import { useExerciseImages, useExerciseDbGif, useExerciseThumbnail, useWgerImage } from '@/shared/hooks/useExerciseGif'
 import { cn } from '@/shared/utils/cn'
 import type { Exercise } from '@/domain/entities/Exercise'
 import { MuscleDiagram } from '@/presentation/features/exercises/components/MuscleDiagram'
@@ -46,16 +46,38 @@ function NoImagePlaceholder({ muscle, className }: { muscle: string; className?:
 
 function ExerciseThumbnail({ exercise }: { exercise: Exercise }) {
   const thumbnailUrl = useExerciseThumbnail(exercise.name)
-  const [stage, setStage] = useState<'thumb' | 'gif' | 'error'>('thumb')
-  // Only fire the API query when GitHub JPG fails — avoids 73 simultaneous requests on list load
+  const [stage, setStage] = useState<'thumb' | 'gif' | 'wger' | 'error'>('thumb')
+
+  // Only fire API queries when the previous source fails
   const { data: gifUrl, isLoading: gifLoading } = useExerciseDbGif(
     stage === 'gif' ? exercise.name : ''
   )
+  const { data: wgerUrl, isLoading: wgerLoading } = useWgerImage(exercise.name, stage === 'wger')
+
   const primaryMuscle = exercise.primaryMuscles[0] ?? ''
   const containerCls = 'w-14 h-14 rounded-[var(--radius-md)] shrink-0'
 
   if (stage === 'error') {
-    return <NoImagePlaceholder muscle={primaryMuscle} className={`${containerCls}`} />
+    return <NoImagePlaceholder muscle={primaryMuscle} className={containerCls} />
+  }
+
+  if (stage === 'wger') {
+    if (wgerLoading) {
+      return <div className={`${containerCls} bg-[var(--color-surface-03)] animate-pulse`} />
+    }
+    if (!wgerUrl) {
+      return <NoImagePlaceholder muscle={primaryMuscle} className={containerCls} />
+    }
+    return (
+      <img
+        src={wgerUrl}
+        alt={exercise.nameEs}
+        loading="lazy"
+        decoding="async"
+        onError={() => setStage('error')}
+        className={`${containerCls} object-cover bg-[var(--color-surface-03)]`}
+      />
+    )
   }
 
   if (stage === 'gif') {
@@ -63,7 +85,7 @@ function ExerciseThumbnail({ exercise }: { exercise: Exercise }) {
       return <div className={`${containerCls} bg-[var(--color-surface-03)] animate-pulse`} />
     }
     if (!gifUrl) {
-      return <NoImagePlaceholder muscle={primaryMuscle} className={`${containerCls}`} />
+      return <WgerFallbackTrigger onReady={() => setStage('wger')} containerCls={containerCls} />
     }
     return (
       <img
@@ -71,7 +93,7 @@ function ExerciseThumbnail({ exercise }: { exercise: Exercise }) {
         alt={exercise.nameEs}
         loading="lazy"
         decoding="async"
-        onError={() => setStage('error')}
+        onError={() => setStage('wger')}
         className={`${containerCls} object-cover bg-[var(--color-surface-03)]`}
       />
     )
@@ -90,6 +112,18 @@ function ExerciseThumbnail({ exercise }: { exercise: Exercise }) {
   )
 }
 
+/** Triggers setStage('wger') on mount so the Wger query fires without an extra render cycle */
+function WgerFallbackTrigger({
+  onReady,
+  containerCls,
+}: {
+  onReady: () => void
+  containerCls: string
+}) {
+  useEffect(() => { onReady() }, [onReady])
+  return <div className={`${containerCls} bg-[var(--color-surface-03)] animate-pulse`} />
+}
+
 function ExerciseDetail({ exercise, onClose }: { exercise: Exercise; onClose: () => void }) {
   const { data: gifUrl, isLoading: gifLoading } = useExerciseDbGif(exercise.name)
   const { img0, img1 } = useExerciseImages(exercise.name)
@@ -97,11 +131,15 @@ function ExerciseDetail({ exercise, onClose }: { exercise: Exercise; onClose: ()
   const [imgState, setImgState] = useState<'loading' | 'loaded' | 'error'>('loading')
   const [gifError, setGifError] = useState(false)
   const [frame, setFrame] = useState(0)
+  // Wger fallback — activated when GIF is unavailable or fails to load
+  const [useWger, setUseWger] = useState(false)
+  const { data: wgerUrl, isLoading: wgerLoading } = useWgerImage(exercise.name, useWger)
 
   useEffect(() => {
     setImgState('loading')
     setGifError(false)
     setFrame(0)
+    setUseWger(false)
   }, [exercise.name])
 
   useEffect(() => {
@@ -146,39 +184,84 @@ function ExerciseDetail({ exercise, onClose }: { exercise: Exercise; onClose: ()
               key={gifUrl}
               src={gifUrl}
               alt={exercise.nameEs}
-              onError={() => setGifError(true)}
+              onError={() => { setGifError(true); setUseWger(true) }}
               className="w-full max-h-72 object-contain mx-auto"
               style={{ background: 'var(--color-surface-02)' }}
             />
           ) : !gifLoading && (
-            /* Fallback: JPG crossfade */
-            imgState === 'error' ? (
-              <div className="h-40 flex items-center justify-center">
-                <NoImagePlaceholder muscle={primaryMuscle} className="w-24 h-24 rounded-2xl" />
-              </div>
-            ) : (
-              <>
+            useWger || !gifUrl ? (
+              /* Wger photo fallback */
+              wgerLoading ? (
+                <div className="absolute inset-0 animate-pulse bg-[var(--color-surface-02)]" />
+              ) : wgerUrl ? (
                 <img
-                  src={img0}
+                  src={wgerUrl}
                   alt={exercise.nameEs}
-                  onLoad={() => setImgState('loaded')}
-                  onError={() => setImgState('error')}
-                  className={cn(
-                    'w-full max-h-64 object-cover transition-opacity duration-700',
-                    imgState === 'loading' ? 'opacity-0' : frame === 0 ? 'opacity-100' : 'opacity-0'
-                  )}
+                  onError={() => setUseWger(false)}
+                  className="w-full max-h-72 object-contain mx-auto"
+                  style={{ background: 'var(--color-surface-02)' }}
                 />
-                {imgState === 'loaded' && (
+              ) : (
+                /* Final fallback: JPG crossfade */
+                imgState === 'error' ? (
+                  <div className="h-40 flex items-center justify-center">
+                    <NoImagePlaceholder muscle={primaryMuscle} className="w-24 h-24 rounded-2xl" />
+                  </div>
+                ) : (
+                  <>
+                    <img
+                      src={img0}
+                      alt={exercise.nameEs}
+                      onLoad={() => setImgState('loaded')}
+                      onError={() => setImgState('error')}
+                      className={cn(
+                        'w-full max-h-64 object-cover transition-opacity duration-700',
+                        imgState === 'loading' ? 'opacity-0' : frame === 0 ? 'opacity-100' : 'opacity-0'
+                      )}
+                    />
+                    {imgState === 'loaded' && (
+                      <img
+                        src={img1}
+                        alt={exercise.nameEs}
+                        className={cn(
+                          'absolute inset-0 w-full max-h-64 object-cover transition-opacity duration-700',
+                          frame === 1 ? 'opacity-100' : 'opacity-0'
+                        )}
+                      />
+                    )}
+                  </>
+                )
+              )
+            ) : (
+              /* JPG crossfade while Wger not yet triggered */
+              imgState === 'error' ? (
+                <div className="h-40 flex items-center justify-center">
+                  <NoImagePlaceholder muscle={primaryMuscle} className="w-24 h-24 rounded-2xl" />
+                </div>
+              ) : (
+                <>
                   <img
-                    src={img1}
+                    src={img0}
                     alt={exercise.nameEs}
+                    onLoad={() => setImgState('loaded')}
+                    onError={() => { setImgState('error'); setUseWger(true) }}
                     className={cn(
-                      'absolute inset-0 w-full max-h-64 object-cover transition-opacity duration-700',
-                      frame === 1 ? 'opacity-100' : 'opacity-0'
+                      'w-full max-h-64 object-cover transition-opacity duration-700',
+                      imgState === 'loading' ? 'opacity-0' : frame === 0 ? 'opacity-100' : 'opacity-0'
                     )}
                   />
-                )}
-              </>
+                  {imgState === 'loaded' && (
+                    <img
+                      src={img1}
+                      alt={exercise.nameEs}
+                      className={cn(
+                        'absolute inset-0 w-full max-h-64 object-cover transition-opacity duration-700',
+                        frame === 1 ? 'opacity-100' : 'opacity-0'
+                      )}
+                    />
+                  )}
+                </>
+              )
             )
           )}
         </div>

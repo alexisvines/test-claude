@@ -190,3 +190,54 @@ export function useExerciseImages(exerciseName: string) {
     img1: `${base}/1.jpg`,
   }
 }
+
+// ── Wger fallback ─────────────────────────────────────────────────────────────
+// Wger (wger.de) is a free open-source fitness API with exercise photos.
+// Two-step: search by name → get base_id → fetch image URL.
+
+interface WgerSuggestion {
+  data: { base_id: number }
+}
+
+async function fetchWgerImageUrl(exerciseName: string): Promise<string | null> {
+  const term = encodeURIComponent(exerciseName.toLowerCase())
+  let searchRes: Response
+  try {
+    searchRes = await fetch(
+      `https://wger.de/api/v2/exercise/search/?term=${term}&language=english&format=json`,
+      { signal: AbortSignal.timeout(7000) }
+    )
+  } catch {
+    return null
+  }
+  if (!searchRes.ok) return null
+
+  const searchData = (await searchRes.json()) as { suggestions?: WgerSuggestion[] }
+  const baseId = searchData.suggestions?.[0]?.data?.base_id
+  if (!baseId) return null
+
+  let imgRes: Response
+  try {
+    imgRes = await fetch(
+      `https://wger.de/api/v2/exerciseimage/?exercise_base_id=${baseId}&format=json&limit=1`,
+      { signal: AbortSignal.timeout(7000) }
+    )
+  } catch {
+    return null
+  }
+  if (!imgRes.ok) return null
+
+  const imgData = (await imgRes.json()) as { results?: { image: string }[] }
+  return imgData.results?.[0]?.image ?? null
+}
+
+export function useWgerImage(exerciseName: string, enabled = false) {
+  return useQuery<string | null>({
+    queryKey: ['wger-image', exerciseName],
+    queryFn: () => fetchWgerImageUrl(exerciseName),
+    staleTime: 1000 * 60 * 60 * 24,
+    gcTime: 1000 * 60 * 60 * 24,
+    retry: 0,
+    enabled: enabled && !!exerciseName,
+  })
+}

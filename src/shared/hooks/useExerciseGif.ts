@@ -1,1 +1,1 @@
-export { useExerciseImages, useExerciseDbGif, useExerciseThumbnail } from './useExerciseDbGif'
+export { useExerciseImages, useExerciseDbGif, useExerciseThumbnail, useWgerImage } from './useExerciseDbGif'
