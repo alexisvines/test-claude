@@ -11,25 +11,65 @@ interface ExerciseDbItem {
   equipment: string
 }
 
-async function fetchExerciseGifUrl(exerciseName: string): Promise<string | null> {
-  const name = exerciseName.toLowerCase()
-  const res = await fetch(
-    `${EXERCISEDB_BASE}/exercises/name/${encodeURIComponent(name)}?limit=5`,
-    { signal: AbortSignal.timeout(6000) }
+/** Generate multiple name variants to maximize ExerciseDB match rate */
+function getNameVariants(exerciseName: string): string[] {
+  const base = exerciseName.toLowerCase()
+  const variants: string[] = [base]
+
+  // "Skull Crusher / French Press" → try each part separately
+  if (base.includes(' / ')) {
+    variants.push(...base.split(' / ').map(p => p.trim()))
+  }
+
+  // "Pull-Up", "T-Bar Row", "EZ-Bar Curl" → remove hyphens
+  if (base.includes('-')) {
+    variants.push(base.replace(/-/g, ' '))
+  }
+
+  // "Pec Deck Machine", "Hip Abductor Machine" → strip " machine"
+  if (base.endsWith(' machine')) {
+    variants.push(base.slice(0, -8).trim())
+  }
+
+  // Strip common equipment prefixes for a broader search
+  const stripped = base.replace(
+    /^(barbell|dumbbell|cable|ez-bar|ez bar|resistance band|seated|standing|lying) /,
+    ''
   )
+  if (stripped !== base) variants.push(stripped)
 
-  if (!res.ok) return null
+  return [...new Set(variants)]
+}
 
-  const data: unknown = await res.json()
-  const exercises: ExerciseDbItem[] = Array.isArray(data)
-    ? (data as ExerciseDbItem[])
-    : ((data as Record<string, unknown>).exercises as ExerciseDbItem[] | undefined) ?? []
+async function fetchExerciseGifUrl(exerciseName: string): Promise<string | null> {
+  const variants = getNameVariants(exerciseName)
 
-  if (!exercises.length) return null
+  for (const variant of variants) {
+    let res: Response
+    try {
+      res = await fetch(
+        `${EXERCISEDB_BASE}/exercises/name/${encodeURIComponent(variant)}?limit=5`,
+        { signal: AbortSignal.timeout(8000) }
+      )
+    } catch {
+      continue
+    }
 
-  const exact = exercises.find(e => e.name.toLowerCase() === name)
-  const match = exact ?? exercises[0]
-  return match?.gifUrl ?? null
+    if (!res.ok) continue
+
+    const data: unknown = await res.json()
+    const exercises: ExerciseDbItem[] = Array.isArray(data)
+      ? (data as ExerciseDbItem[])
+      : ((data as Record<string, unknown>).exercises as ExerciseDbItem[] | undefined) ?? []
+
+    if (!exercises.length) continue
+
+    const exact = exercises.find(e => e.name.toLowerCase() === variant)
+    const match = exact ?? exercises[0]
+    if (match?.gifUrl) return match.gifUrl
+  }
+
+  return null
 }
 
 export function useExerciseDbGif(exerciseName: string) {
@@ -80,6 +120,7 @@ const FREE_EXERCISE_DB_MAP: Record<string, string> = {
   'Cable Lateral Raise':          'Cable_Lateral_Raise',
   'Rear Delt Fly':                'Bent_Over_Dumbbell_Rear_Delt_Row',
   'Front Raise':                  'Dumbbell_Front_Raise',
+  'Dumbbell Front Raise':         'Dumbbell_Front_Raise',
   // BICEPS
   'Barbell Curl':                 'Barbell_Curl',
   'EZ-Bar Curl':                  'EZ_Barbell_Curl',
@@ -124,6 +165,9 @@ const FREE_EXERCISE_DB_MAP: Record<string, string> = {
   'Hanging Leg Raise':            'Hanging_Leg_Raise',
   'Ab Wheel Rollout':             'Ab_Wheel_Rollout',
   'Dragon Flag':                  'Dragon_Flag',
+  'Russian Twist':                'Russian_Twist',
+  'Cable Crunch':                 'Cable_Crunch',
+  'Bicycle Crunch':               'Bicycle_Crunch',
   // TRAPS
   'Barbell Shrug':                'Barbell_Shrug',
   'Dumbbell Shrug':               'Dumbbell_Shrug',
@@ -133,6 +177,13 @@ const FREE_EXERCISE_DB_MAP: Record<string, string> = {
   // FOREARMS
   'Wrist Curl':                   'Wrist_Curl',
   'Reverse Curl':                 'Reverse_Curl',
+  // Additional exercises
+  'Incline Curl':                 'Dumbbell_Incline_Curl',
+  'Chest Fly':                    'Dumbbell_Fly',
+  'Seated Cable Row':             'Cable_Seated_Row',
+  'Single Leg Press':             'Leg_Press',
+  'Reverse Hyperextension':       'Back_Extension',
+  'Glute Ham Raise':              'Inverse_Leg_Curl',
 }
 
 export function useExerciseThumbnail(exerciseName: string): string {
@@ -149,4 +200,55 @@ export function useExerciseImages(exerciseName: string) {
     img0: `${base}/0.jpg`,
     img1: `${base}/1.jpg`,
   }
+}
+
+// ── Wger fallback ─────────────────────────────────────────────────────────────
+// Wger (wger.de) is a free open-source fitness API with exercise photos.
+// Two-step: search by name → get base_id → fetch image URL.
+
+interface WgerSuggestion {
+  data: { base_id: number }
+}
+
+async function fetchWgerImageUrl(exerciseName: string): Promise<string | null> {
+  const term = encodeURIComponent(exerciseName.toLowerCase())
+  let searchRes: Response
+  try {
+    searchRes = await fetch(
+      `https://wger.de/api/v2/exercise/search/?term=${term}&language=english&format=json`,
+      { signal: AbortSignal.timeout(7000) }
+    )
+  } catch {
+    return null
+  }
+  if (!searchRes.ok) return null
+
+  const searchData = (await searchRes.json()) as { suggestions?: WgerSuggestion[] }
+  const baseId = searchData.suggestions?.[0]?.data?.base_id
+  if (!baseId) return null
+
+  let imgRes: Response
+  try {
+    imgRes = await fetch(
+      `https://wger.de/api/v2/exerciseimage/?exercise_base_id=${baseId}&format=json&limit=1`,
+      { signal: AbortSignal.timeout(7000) }
+    )
+  } catch {
+    return null
+  }
+  if (!imgRes.ok) return null
+
+  const imgData = (await imgRes.json()) as { results?: { image: string }[] }
+  return imgData.results?.[0]?.image ?? null
+}
+
+export function useWgerImage(exerciseName: string, enabled = false) {
+  return useQuery<string | null>({
+    queryKey: ['wger-image', exerciseName],
+    queryFn: () => fetchWgerImageUrl(exerciseName),
+    staleTime: 1000 * 60 * 60 * 24,
+    gcTime: 1000 * 60 * 60 * 24,
+    retry: 0,
+    enabled: enabled && !!exerciseName,
+  })
 }

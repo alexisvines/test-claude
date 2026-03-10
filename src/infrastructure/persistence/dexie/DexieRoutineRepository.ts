@@ -1,9 +1,9 @@
 import type { IRoutineRepository } from '../../../domain/repositories/IRoutineRepository'
 import { Routine } from '../../../domain/entities/Routine'
-import type { GymOSDatabase } from './GymOSDatabase'
+import type { KovaDatabase } from './KovaDatabase'
 
 export class DexieRoutineRepository implements IRoutineRepository {
-  constructor(private readonly db: GymOSDatabase) {}
+  constructor(private readonly db: KovaDatabase) {}
 
   async save(routine: Routine): Promise<void> {
     await this.db.routines.put({

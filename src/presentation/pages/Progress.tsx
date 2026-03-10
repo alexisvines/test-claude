@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   XAxis, YAxis, CartesianGrid, Tooltip,
@@ -7,6 +7,7 @@ import {
 import { getContainer } from '@/infrastructure/container/DIContainer'
 import { formatDate } from '@/shared/utils/formatters'
 import { cn } from '@/shared/utils/cn'
+import { WorkoutCalendar } from '@/presentation/features/progress/components/WorkoutCalendar'
 
 type Period = '1m' | '3m' | '6m' | '1y' | 'all'
 
@@ -161,6 +162,19 @@ export function ProgressPage() {
     .sort((a, b) => (exerciseUsage.get(b.id) ?? 0) - (exerciseUsage.get(a.id) ?? 0))
     .slice(0, 5)
 
+  const completedDates = useMemo(() => {
+    const set = new Set<string>()
+    for (const s of sessions) {
+      if (s.status === 'completed') {
+        const d = s.startedAt
+        set.add(
+          `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
+        )
+      }
+    }
+    return set
+  }, [sessions])
+
   const [selectedExerciseId, setSelectedExerciseId] = useState<string>('')
 
   const currentExercise = selectedExerciseId
@@ -195,6 +209,16 @@ export function ProgressPage() {
     <div className="p-4 space-y-6 max-w-lg mx-auto">
       <div className="pt-2">
         <h1 className="font-display text-3xl font-bold text-[var(--color-text-primary)]">Progreso</h1>
+      </div>
+
+      {/* Monthly Calendar */}
+      <div className="space-y-3">
+        <h2 className="font-display text-lg font-bold text-[var(--color-text-secondary)] uppercase tracking-wide">
+          Actividad mensual
+        </h2>
+        <div className="bg-[var(--color-surface-02)] rounded-[var(--radius-lg)] p-4">
+          <WorkoutCalendar completedDates={completedDates} />
+        </div>
       </div>
 
       {/* Weekly Volume Chart */}

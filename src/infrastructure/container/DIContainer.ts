@@ -1,4 +1,4 @@
-import { getDatabase } from '../persistence/dexie/GymOSDatabase'
+import { getDatabase } from '../persistence/dexie/KovaDatabase'
 import { DexieWorkoutRepository } from '../persistence/dexie/DexieWorkoutRepository'
 import { DexieExerciseRepository } from '../persistence/dexie/DexieExerciseRepository'
 import { DexieRoutineRepository } from '../persistence/dexie/DexieRoutineRepository'
@@ -13,22 +13,22 @@ import type { IRoutineRepository } from '../../domain/repositories/IRoutineRepos
 import type { IAthleteRepository } from '../../domain/repositories/IAthleteRepository'
 import type { IEventBus } from '../../application/ports/IEventBus'
 import type { IAIEvaluationPort } from '../../application/ports/IAIEvaluationPort'
-import type { GymOSDomainEvent } from '../../domain/events'
+import type { KovaDomainEvent } from '../../domain/events'
 
 class InMemoryEventBus implements IEventBus {
-  private readonly handlers = new Map<string, Array<(event: GymOSDomainEvent) => Promise<void>>>()
+  private readonly handlers = new Map<string, Array<(event: KovaDomainEvent) => Promise<void>>>()
 
-  async publish(event: GymOSDomainEvent): Promise<void> {
+  async publish(event: KovaDomainEvent): Promise<void> {
     const handlers = this.handlers.get(event.type) ?? []
     await Promise.allSettled(handlers.map(h => h(event)))
   }
 
-  subscribe<T extends GymOSDomainEvent>(
+  subscribe<T extends KovaDomainEvent>(
     eventType: T['type'],
     handler: (event: T) => Promise<void>
   ): void {
     const existing = this.handlers.get(eventType) ?? []
-    this.handlers.set(eventType, [...existing, handler as (event: GymOSDomainEvent) => Promise<void>])
+    this.handlers.set(eventType, [...existing, handler as (event: KovaDomainEvent) => Promise<void>])
   }
 }
 

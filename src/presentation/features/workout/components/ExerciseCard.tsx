@@ -1,23 +1,92 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
+import {
+  Dumbbell, Target, Layers, Maximize2, Triangle, Grip,
+  Zap, Footprints, Circle, Mountain, type LucideIcon,
+} from 'lucide-react'
 import { cn } from '@/shared/utils/cn'
 import type { Exercise } from '@/domain/entities/Exercise'
 import { MUSCLE_GROUP_LABELS } from '@/domain/value-objects/MuscleGroup'
+import { MuscleDiagram } from '@/presentation/features/exercises/components/MuscleDiagram'
+import { useExerciseThumbnail, useWgerImage } from '@/shared/hooks/useExerciseGif'
 
-const MUSCLE_EMOJIS: Record<string, string> = {
-  chest: '💪',
-  back: '🔙',
-  lats: '🦅',
-  shoulders: '🏋️',
-  biceps: '💪',
-  triceps: '💪',
-  forearms: '🤜',
-  quadriceps: '🦵',
-  hamstrings: '🦵',
-  glutes: '🍑',
-  calves: '🦶',
-  core: '🎯',
-  traps: '🐂',
+const MUSCLE_ICONS: Record<string, LucideIcon> = {
+  chest: Dumbbell,
+  back: Layers,
+  lats: Maximize2,
+  shoulders: Triangle,
+  biceps: Dumbbell,
+  triceps: Dumbbell,
+  forearms: Grip,
+  quadriceps: Zap,
+  hamstrings: Footprints,
+  glutes: Circle,
+  calves: Footprints,
+  core: Target,
+  traps: Mountain,
+}
+
+const MUSCLE_COLOR: Record<string, string> = {
+  chest: '#FF6B6B', back: '#4ECDC4', lats: '#45B7D1', shoulders: '#96CEB4',
+  biceps: '#FFEAA7', triceps: '#DDA0DD', forearms: '#F0E68C', quadriceps: '#98FB98',
+  hamstrings: '#FFB347', glutes: '#FF69B4', calves: '#87CEEB', core: '#FFA500', traps: '#C0C0C0',
+}
+
+function ExerciseMediaRow({ exercise }: { exercise: Exercise }) {
+  const thumbnailUrl = useExerciseThumbnail(exercise.name)
+  const [githubFailed, setGithubFailed] = useState(false)
+  const { data: wgerUrl, isLoading: wgerLoading } = useWgerImage(exercise.name, githubFailed)
+  const [wgerFailed, setWgerFailed] = useState(false)
+
+  const showPlaceholder = githubFailed && (wgerFailed || (!wgerLoading && !wgerUrl))
+  const muscleColor = MUSCLE_COLOR[exercise.primaryMuscles[0] ?? ''] ?? '#888'
+
+  return (
+    <div className="flex gap-3 pt-3 items-center">
+      {/* Exercise image */}
+      <div className="w-24 h-24 rounded-[var(--radius-md)] bg-[var(--color-surface-03)] overflow-hidden shrink-0 flex items-center justify-center">
+        {showPlaceholder ? (
+          <div
+            className="w-full h-full flex flex-col items-center justify-center gap-1"
+            style={{ background: `linear-gradient(135deg, ${muscleColor}22, ${muscleColor}44)` }}
+          >
+            <span className="text-2xl">🏋️</span>
+            <span className="text-[8px] text-[var(--color-text-muted)] text-center px-1 leading-tight">
+              {exercise.nameEs}
+            </span>
+          </div>
+        ) : wgerLoading && githubFailed ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <span className="w-6 h-6 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : wgerUrl && githubFailed ? (
+          <img
+            src={wgerUrl}
+            alt={exercise.nameEs}
+            loading="lazy"
+            onError={() => setWgerFailed(true)}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <img
+            src={thumbnailUrl}
+            alt={exercise.nameEs}
+            loading="lazy"
+            onError={() => setGithubFailed(true)}
+            className="w-full h-full object-cover"
+          />
+        )}
+      </div>
+      {/* Muscle diagram */}
+      <div className="flex-1 flex justify-center">
+        <MuscleDiagram
+          primary={exercise.primaryMuscles}
+          secondary={exercise.muscleGroups.secondary}
+          size="sm"
+        />
+      </div>
+    </div>
+  )
 }
 
 interface Props {
@@ -48,10 +117,15 @@ export function ExerciseCard({ exercise, setCount, targetSets, isActive, onClick
     >
       <div className="p-4">
         <div className="flex items-start gap-3">
-          {/* Muscle Emoji */}
-          <div className="text-2xl w-10 h-10 flex items-center justify-center bg-[var(--color-surface-03)] rounded-[var(--radius-md)]">
-            {MUSCLE_EMOJIS[exercise.primaryMuscles[0] ?? ''] ?? '🏋️'}
-          </div>
+          {/* Muscle Icon */}
+          {(() => {
+            const Icon = MUSCLE_ICONS[exercise.primaryMuscles[0] ?? ''] ?? Dumbbell
+            return (
+              <div className="w-10 h-10 flex items-center justify-center bg-[var(--color-surface-03)] rounded-[var(--radius-md)] text-[var(--color-text-secondary)]">
+                <Icon size={20} />
+              </div>
+            )
+          })()}
 
           {/* Info */}
           <div className="flex-1 min-w-0">
@@ -111,8 +185,11 @@ export function ExerciseCard({ exercise, setCount, targetSets, isActive, onClick
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 space-y-2 border-t border-[var(--color-border)]">
-              <p className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide pt-3">
+            <div className="px-4 pb-4 space-y-3 border-t border-[var(--color-border)]">
+              {/* Image + Muscle diagram side by side */}
+              <ExerciseMediaRow exercise={exercise} />
+
+              <p className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide pt-1">
                 Instrucciones
               </p>
               <ol className="space-y-1">

@@ -1,8 +1,8 @@
-name: Deploy GymOS to GitHub Pages
+name: Deploy Kova to GitHub Pages
 
 on:
   push:
-    branches: [claude/build-gymos-fitness-4AGfj]
+    branches: [claude/feat-offline-mvp-rHST4]
   workflow_dispatch:
 
 permissions:

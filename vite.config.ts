@@ -11,8 +11,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icons/*.png', 'icons/*.svg'],
       manifest: {
-        name: 'GymOS — Tu Sistema de Entrenamiento',
-        short_name: 'GymOS',
+        name: 'Kova — Entrena con intensidad',
+        short_name: 'Kova',
         description: 'Registra, analiza y optimiza tus entrenamientos de fuerza con IA',
         theme_color: '#060606',
         background_color: '#060606',

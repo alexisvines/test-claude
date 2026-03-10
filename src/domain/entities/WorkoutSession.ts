@@ -1,6 +1,6 @@
 import { WorkoutSet } from './WorkoutSet'
 import type {
-  GymOSDomainEvent,
+  KovaDomainEvent,
   WorkoutCompleted,
   SetRecorded,
   PersonalRecordAchieved,
@@ -19,7 +19,7 @@ export interface WorkoutSessionProps {
   sets: WorkoutSet[]
   status: WorkoutStatus
   notes?: string
-  domainEvents: GymOSDomainEvent[]
+  domainEvents: KovaDomainEvent[]
 }
 
 export class WorkoutSession {
@@ -160,7 +160,7 @@ export class WorkoutSession {
     }
   }
 
-  pullDomainEvents(): GymOSDomainEvent[] {
+  pullDomainEvents(): KovaDomainEvent[] {
     const events = [...this.props.domainEvents]
     this.props.domainEvents = []
     return events

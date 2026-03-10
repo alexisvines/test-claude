@@ -4,10 +4,10 @@ import { WorkoutSet } from '../../../domain/entities/WorkoutSet'
 import { Weight } from '../../../domain/value-objects/Weight'
 import { RIR } from '../../../domain/value-objects/RIR'
 import { RPE } from '../../../domain/value-objects/RPE'
-import type { GymOSDatabase, WorkoutSessionRecord } from './GymOSDatabase'
+import type { KovaDatabase, WorkoutSessionRecord } from './KovaDatabase'
 
 export class DexieWorkoutRepository implements IWorkoutRepository {
-  constructor(private readonly db: GymOSDatabase) {}
+  constructor(private readonly db: KovaDatabase) {}
 
   async save(session: WorkoutSession): Promise<void> {
     await this.db.workoutSessions.put({

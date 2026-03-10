@@ -1,11 +1,13 @@
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { motion } from 'motion/react'
 import { getContainer } from '@/infrastructure/container/DIContainer'
 import { formatVolume, formatDate } from '@/shared/utils/formatters'
 import { cn } from '@/shared/utils/cn'
 import { useActiveWorkoutStore } from '@/presentation/features/workout/stores/activeWorkout.store'
+import { useStartWorkout } from '@/presentation/features/workout/hooks/useStartWorkout'
 import type { WorkoutSession } from '@/domain/entities/WorkoutSession'
+import type { Routine } from '@/domain/entities/Routine'
 
 function StatCard({ label, value, icon, accent }: { label: string; value: string; icon: string; accent?: boolean }) {
   return (
@@ -49,6 +51,43 @@ function StreakCard({ days }: { days: number }) {
   )
 }
 
+const DAY_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+const MUSCLE_DAY_EMOJI: Record<string, string> = {
+  chest: '💪', back: '🔙', lats: '🔙', shoulders: '🏋️', biceps: '💪',
+  triceps: '💪', forearms: '🤜', quadriceps: '🦵', hamstrings: '🦵',
+  glutes: '🍑', calves: '🦶', core: '🎯', traps: '🐂',
+}
+
+function TodayCard({ routine }: { routine: Routine }) {
+  const today = new Date().getDay()
+  const day = routine.days[today % routine.days.length]
+  if (!day) return null
+
+  const primaryMuscleKey = day.isRestDay ? null : day.exercises[0]?.exerciseId.split('-')[0]
+  const emoji = day.isRestDay ? '😴' : (primaryMuscleKey ? (MUSCLE_DAY_EMOJI[primaryMuscleKey] ?? '🏋️') : '🏋️')
+  const label = day.isRestDay ? 'Día de descanso' : day.name
+
+  return (
+    <div className="rounded-[var(--radius-lg)] p-4 bg-[var(--color-surface-02)] border border-[var(--color-border)]">
+      <p className="text-xs text-[var(--color-text-muted)] uppercase tracking-wide mb-1">
+        Hoy · {DAY_SHORT[today]}
+      </p>
+      <div className="flex items-center gap-3">
+        <span className="text-3xl">{emoji}</span>
+        <div>
+          <p className="font-semibold text-[var(--color-text-primary)]">{label}</p>
+          {!day.isRestDay && (
+            <p className="text-xs text-[var(--color-text-secondary)]">
+              {day.exercises.length} ejercicio{day.exercises.length !== 1 ? 's' : ''}
+            </p>
+          )}
+        </div>
+        <p className="ml-auto text-xs text-[var(--color-accent)] font-semibold">{routine.name}</p>
+      </div>
+    </div>
+  )
+}
+
 function RecentWorkout({ session }: { session: WorkoutSession }) {
   return (
     <div className="flex items-center gap-3 py-3 border-b border-[var(--color-border)] last:border-0">
@@ -74,6 +113,7 @@ export function Dashboard() {
   const navigate = useNavigate()
   const container = getContainer()
   const store = useActiveWorkoutStore()
+  const startWorkoutMutation = useStartWorkout()
 
   const { data: athlete } = useQuery({
     queryKey: ['athlete'],
@@ -98,48 +138,10 @@ export function Dashboard() {
     enabled: !!athlete,
   })
 
-  const startWorkoutMutation = useMutation({
-    mutationFn: async () => {
-      if (!athlete) throw new Error('No athlete found')
-      const result = await container.startWorkoutHandler.handle({
-        athleteId: athlete.id,
-        routineId: athlete.activeRoutineId,
-      })
-      return result
-    },
-    onSuccess: (result) => {
-      store.setSession(result.sessionId, {
-        id: result.sessionId,
-        athleteId: athlete!.id,
-        routineId: athlete?.activeRoutineId,
-        routineName: result.routineName,
-        startedAt: new Date(),
-        sets: [],
-        status: 'active',
-      } as unknown as import('@/domain/entities/WorkoutSession').WorkoutSession)
-
-      if (athlete?.activeRoutineId) {
-        container.routineRepo.findById(athlete.activeRoutineId).then(routine => {
-          if (routine) {
-            const today = new Date().getDay() // 0=Sun, 1=Mon...
-            const todayDay = routine.days[today % routine.days.length]
-            if (todayDay && !todayDay.isRestDay) {
-              const exercises = todayDay.exercises.map(ex => ({
-                exercise: { id: ex.exerciseId } as import('@/domain/entities/Exercise').Exercise,
-                targetSets: ex.sets,
-                targetRepRange: ex.repRange,
-                targetRIR: ex.rirTarget,
-                restSeconds: ex.restSeconds,
-                loggedSets: [],
-              }))
-              store.setExercises(exercises)
-            }
-          }
-        }).catch(() => {/* ignore */})
-      }
-
-      void navigate({ to: '/workout' })
-    },
+  const { data: activeRoutine } = useQuery({
+    queryKey: ['routine', athlete?.activeRoutineId],
+    queryFn: () => athlete?.activeRoutineId ? container.routineRepo.findById(athlete.activeRoutineId) : null,
+    enabled: !!athlete?.activeRoutineId,
   })
 
   const unlockedAchievements = achievements.filter(a => a.isUnlocked).slice(-3).reverse()
@@ -160,8 +162,17 @@ export function Dashboard() {
           </h1>
           <p className="text-sm text-[var(--color-accent)]">{athlete?.levelLabel ?? 'Novato'}</p>
         </div>
-        <div className="w-12 h-12 rounded-full bg-[var(--color-surface-03)] flex items-center justify-center text-2xl">
-          {athlete?.level === 'leyenda' ? '🌟' : athlete?.level === 'elite' ? '💎' : '🏋️'}
+        <div className="flex items-center gap-2">
+          <div className="w-12 h-12 rounded-full bg-[var(--color-surface-03)] flex items-center justify-center text-2xl">
+            {athlete?.level === 'leyenda' ? '🌟' : athlete?.level === 'elite' ? '💎' : '🏋️'}
+          </div>
+          <button
+            onClick={() => void navigate({ to: '/settings' })}
+            className="w-10 h-10 rounded-full bg-[var(--color-surface-02)] flex items-center justify-center text-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+            aria-label="Ajustes"
+          >
+            ⚙️
+          </button>
         </div>
       </motion.div>
 
@@ -178,6 +189,11 @@ export function Dashboard() {
             <p className="text-[var(--color-success)] font-semibold">Entrenamiento activo — Continúa</p>
           </div>
         </motion.div>
+      )}
+
+      {/* Today's workout from active routine */}
+      {activeRoutine && !hasActiveSession && (
+        <TodayCard routine={activeRoutine} />
       )}
 
       {/* Streak */}
@@ -271,7 +287,7 @@ export function Dashboard() {
         transition={{ type: 'spring', stiffness: 400, damping: 25, delay: 0.3 }}
       >
         <button
-          onClick={() => hasActiveSession ? void navigate({ to: '/workout' }) : startWorkoutMutation.mutate()}
+          onClick={() => hasActiveSession ? void navigate({ to: '/workout' }) : athlete && startWorkoutMutation.mutate({ athleteId: athlete.id, routineId: athlete.activeRoutineId })}
           disabled={startWorkoutMutation.isPending}
           className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-black shadow-[var(--shadow-accent)] active:scale-95 transition-transform"
           style={{ backgroundColor: 'var(--color-accent)' }}

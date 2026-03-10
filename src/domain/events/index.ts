@@ -54,7 +54,7 @@ export interface AchievementUnlocked extends DomainEvent {
   readonly achievementName: string
 }
 
-export type GymOSDomainEvent =
+export type KovaDomainEvent =
   | WorkoutCompleted
   | SetRecorded
   | PersonalRecordAchieved

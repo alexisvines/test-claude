@@ -4,59 +4,142 @@ import { motion } from 'motion/react'
 import { getContainer } from '@/infrastructure/container/DIContainer'
 import { MUSCLE_GROUPS, MUSCLE_GROUP_LABELS, type MuscleGroup } from '@/domain/value-objects/MuscleGroup'
 import { useDebounce } from '@/shared/hooks/useDebounce'
-import { useExerciseImages, useExerciseDbGif, useExerciseThumbnail } from '@/shared/hooks/useExerciseGif'
+import { useExerciseImages, useExerciseDbGif, useExerciseThumbnail, useWgerImage } from '@/shared/hooks/useExerciseGif'
 import { cn } from '@/shared/utils/cn'
 import type { Exercise } from '@/domain/entities/Exercise'
+import { MuscleDiagram } from '@/presentation/features/exercises/components/MuscleDiagram'
 
 const EQUIPMENT_LABELS: Record<string, string> = {
   barbell: 'Barra', dumbbell: 'Mancuerna', cable: 'Polea', machine: 'Máquina',
   bodyweight: 'Peso corporal', kettlebell: 'Kettlebell', 'pull-up-bar': 'Barra fija', 'ez-bar': 'Barra EZ',
 }
 
-const MUSCLE_EMOJIS: Record<string, string> = {
-  chest: '💪', back: '🔙', lats: '🦅', shoulders: '🏋️', biceps: '💪',
-  triceps: '💪', forearms: '🤜', quadriceps: '🦵', hamstrings: '🦵',
-  glutes: '🍑', calves: '🦶', core: '🎯', traps: '🐂',
+// Color per muscle group — used in the placeholder when no image is available
+const MUSCLE_COLORS: Record<string, string> = {
+  chest: '#ef4444', back: '#3b82f6', lats: '#2563eb',
+  shoulders: '#8b5cf6', biceps: '#f59e0b', triceps: '#f59e0b',
+  forearms: '#f97316', quadriceps: '#10b981', hamstrings: '#059669',
+  glutes: '#ec4899', calves: '#14b8a6', core: '#6366f1', traps: '#7c3aed',
+}
+
+/** Styled placeholder shown when all image sources fail — no emojis */
+function NoImagePlaceholder({ muscle, className }: { muscle: string; className?: string }) {
+  const color = MUSCLE_COLORS[muscle] ?? '#64748b'
+  return (
+    <div
+      className={cn('flex items-center justify-center shrink-0', className)}
+      style={{
+        background: `linear-gradient(135deg, ${color}1a, ${color}33)`,
+        border: `1px solid ${color}55`,
+      }}
+    >
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="9" width="4" height="6" rx="1.5" />
+        <rect x="18" y="9" width="4" height="6" rx="1.5" />
+        <rect x="6" y="10" width="3" height="4" rx="1" />
+        <rect x="15" y="10" width="3" height="4" rx="1" />
+        <line x1="9" y1="12" x2="15" y2="12" />
+      </svg>
+    </div>
+  )
 }
 
 function ExerciseThumbnail({ exercise }: { exercise: Exercise }) {
   const thumbnailUrl = useExerciseThumbnail(exercise.name)
-  const [error, setError] = useState(false)
-  const primaryEmoji = exercise.primaryMuscles[0] !== undefined
-    ? (MUSCLE_EMOJIS[exercise.primaryMuscles[0]] ?? '🏋️') : '🏋️'
+  const [stage, setStage] = useState<'thumb' | 'gif' | 'wger' | 'error'>('thumb')
 
-  if (error) {
+  // Only fire API queries when the previous source fails
+  const { data: gifUrl, isLoading: gifLoading } = useExerciseDbGif(
+    stage === 'gif' ? exercise.name : ''
+  )
+  const { data: wgerUrl, isLoading: wgerLoading } = useWgerImage(exercise.name, stage === 'wger')
+
+  const primaryMuscle = exercise.primaryMuscles[0] ?? ''
+  const containerCls = 'w-14 h-14 rounded-[var(--radius-md)] shrink-0'
+
+  if (stage === 'error') {
+    return <NoImagePlaceholder muscle={primaryMuscle} className={containerCls} />
+  }
+
+  if (stage === 'wger') {
+    if (wgerLoading) {
+      return <div className={`${containerCls} bg-[var(--color-surface-03)] animate-pulse`} />
+    }
+    if (!wgerUrl) {
+      return <NoImagePlaceholder muscle={primaryMuscle} className={containerCls} />
+    }
     return (
-      <div className="w-14 h-14 rounded-[var(--radius-md)] bg-[var(--color-surface-03)] flex items-center justify-center shrink-0 text-2xl">
-        {primaryEmoji}
-      </div>
+      <img
+        src={wgerUrl}
+        alt={exercise.nameEs}
+        loading="lazy"
+        decoding="async"
+        onError={() => setStage('error')}
+        className={`${containerCls} object-cover bg-[var(--color-surface-03)]`}
+      />
     )
   }
 
+  if (stage === 'gif') {
+    if (gifLoading) {
+      return <div className={`${containerCls} bg-[var(--color-surface-03)] animate-pulse`} />
+    }
+    if (!gifUrl) {
+      return <WgerFallbackTrigger onReady={() => setStage('wger')} containerCls={containerCls} />
+    }
+    return (
+      <img
+        src={gifUrl}
+        alt={exercise.nameEs}
+        loading="lazy"
+        decoding="async"
+        onError={() => setStage('wger')}
+        className={`${containerCls} object-cover bg-[var(--color-surface-03)]`}
+      />
+    )
+  }
+
+  // stage === 'thumb' — try GitHub static JPG first
   return (
     <img
       src={thumbnailUrl}
       alt={exercise.nameEs}
       loading="lazy"
       decoding="async"
-      onError={() => setError(true)}
-      className="w-14 h-14 rounded-[var(--radius-md)] object-cover shrink-0 bg-[var(--color-surface-03)]"
+      onError={() => setStage('gif')}
+      className={`${containerCls} object-cover bg-[var(--color-surface-03)]`}
     />
   )
+}
+
+/** Triggers setStage('wger') on mount so the Wger query fires without an extra render cycle */
+function WgerFallbackTrigger({
+  onReady,
+  containerCls,
+}: {
+  onReady: () => void
+  containerCls: string
+}) {
+  useEffect(() => { onReady() }, [onReady])
+  return <div className={`${containerCls} bg-[var(--color-surface-03)] animate-pulse`} />
 }
 
 function ExerciseDetail({ exercise, onClose }: { exercise: Exercise; onClose: () => void }) {
   const { data: gifUrl, isLoading: gifLoading } = useExerciseDbGif(exercise.name)
   const { img0, img1 } = useExerciseImages(exercise.name)
-  const primaryEmoji = exercise.primaryMuscles[0] !== undefined ? (MUSCLE_EMOJIS[exercise.primaryMuscles[0]] ?? '🏋️') : '🏋️'
+  const primaryMuscle = exercise.primaryMuscles[0] ?? ''
   const [imgState, setImgState] = useState<'loading' | 'loaded' | 'error'>('loading')
   const [gifError, setGifError] = useState(false)
   const [frame, setFrame] = useState(0)
+  // Wger fallback — activated when GIF is unavailable or fails to load
+  const [useWger, setUseWger] = useState(false)
+  const { data: wgerUrl, isLoading: wgerLoading } = useWgerImage(exercise.name, useWger)
 
   useEffect(() => {
     setImgState('loading')
     setGifError(false)
     setFrame(0)
+    setUseWger(false)
   }, [exercise.name])
 
   useEffect(() => {
@@ -101,64 +184,128 @@ function ExerciseDetail({ exercise, onClose }: { exercise: Exercise; onClose: ()
               key={gifUrl}
               src={gifUrl}
               alt={exercise.nameEs}
-              onError={() => setGifError(true)}
+              onError={() => { setGifError(true); setUseWger(true) }}
               className="w-full max-h-72 object-contain mx-auto"
               style={{ background: 'var(--color-surface-02)' }}
             />
           ) : !gifLoading && (
-            /* Fallback: JPG crossfade */
-            imgState === 'error' ? (
-              <div className="h-40 flex items-center justify-center">
-                <span className="text-7xl">{primaryEmoji}</span>
-              </div>
-            ) : (
-              <>
+            useWger || !gifUrl ? (
+              /* Wger photo fallback */
+              wgerLoading ? (
+                <div className="absolute inset-0 animate-pulse bg-[var(--color-surface-02)]" />
+              ) : wgerUrl ? (
                 <img
-                  src={img0}
+                  src={wgerUrl}
                   alt={exercise.nameEs}
-                  onLoad={() => setImgState('loaded')}
-                  onError={() => setImgState('error')}
-                  className={cn(
-                    'w-full max-h-64 object-cover transition-opacity duration-700',
-                    imgState === 'loading' ? 'opacity-0' : frame === 0 ? 'opacity-100' : 'opacity-0'
-                  )}
+                  onError={() => setUseWger(false)}
+                  className="w-full max-h-72 object-contain mx-auto"
+                  style={{ background: 'var(--color-surface-02)' }}
                 />
-                {imgState === 'loaded' && (
+              ) : (
+                /* Final fallback: JPG crossfade */
+                imgState === 'error' ? (
+                  <div className="h-40 flex items-center justify-center">
+                    <NoImagePlaceholder muscle={primaryMuscle} className="w-24 h-24 rounded-2xl" />
+                  </div>
+                ) : (
+                  <>
+                    <img
+                      src={img0}
+                      alt={exercise.nameEs}
+                      onLoad={() => setImgState('loaded')}
+                      onError={() => setImgState('error')}
+                      className={cn(
+                        'w-full max-h-64 object-cover transition-opacity duration-700',
+                        imgState === 'loading' ? 'opacity-0' : frame === 0 ? 'opacity-100' : 'opacity-0'
+                      )}
+                    />
+                    {imgState === 'loaded' && (
+                      <img
+                        src={img1}
+                        alt={exercise.nameEs}
+                        className={cn(
+                          'absolute inset-0 w-full max-h-64 object-cover transition-opacity duration-700',
+                          frame === 1 ? 'opacity-100' : 'opacity-0'
+                        )}
+                      />
+                    )}
+                  </>
+                )
+              )
+            ) : (
+              /* JPG crossfade while Wger not yet triggered */
+              imgState === 'error' ? (
+                <div className="h-40 flex items-center justify-center">
+                  <NoImagePlaceholder muscle={primaryMuscle} className="w-24 h-24 rounded-2xl" />
+                </div>
+              ) : (
+                <>
                   <img
-                    src={img1}
+                    src={img0}
                     alt={exercise.nameEs}
+                    onLoad={() => setImgState('loaded')}
+                    onError={() => { setImgState('error'); setUseWger(true) }}
                     className={cn(
-                      'absolute inset-0 w-full max-h-64 object-cover transition-opacity duration-700',
-                      frame === 1 ? 'opacity-100' : 'opacity-0'
+                      'w-full max-h-64 object-cover transition-opacity duration-700',
+                      imgState === 'loading' ? 'opacity-0' : frame === 0 ? 'opacity-100' : 'opacity-0'
                     )}
                   />
-                )}
-              </>
+                  {imgState === 'loaded' && (
+                    <img
+                      src={img1}
+                      alt={exercise.nameEs}
+                      className={cn(
+                        'absolute inset-0 w-full max-h-64 object-cover transition-opacity duration-700',
+                        frame === 1 ? 'opacity-100' : 'opacity-0'
+                      )}
+                    />
+                  )}
+                </>
+              )
             )
           )}
         </div>
 
-        {/* Muscle groups */}
+        {/* Muscle groups + Diagram */}
         <div>
-          <p className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide mb-2">Músculos</p>
-          <div className="flex flex-wrap gap-2">
-            {exercise.primaryMuscles.map(m => (
-              <span
-                key={m}
-                className="px-3 py-1 rounded-full text-sm font-semibold text-black"
-                style={{ backgroundColor: 'var(--color-accent)' }}
-              >
-                {MUSCLE_EMOJIS[m]} {MUSCLE_GROUP_LABELS[m]}
-              </span>
-            ))}
-            {exercise.muscleGroups.secondary.map(m => (
-              <span
-                key={m}
-                className="px-3 py-1 rounded-full text-sm border border-[var(--color-border)] text-[var(--color-text-secondary)]"
-              >
-                {MUSCLE_GROUP_LABELS[m]}
-              </span>
-            ))}
+          <p className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide mb-2">Músculos trabajados</p>
+          <div className="flex gap-4 items-start">
+            <div className="flex-1">
+              <div className="flex flex-wrap gap-2 mb-3">
+                {exercise.primaryMuscles.map(m => (
+                  <span
+                    key={m}
+                    className="px-3 py-1 rounded-full text-sm font-semibold text-black"
+                    style={{ backgroundColor: 'var(--color-accent)' }}
+                  >
+                    {MUSCLE_GROUP_LABELS[m]}
+                  </span>
+                ))}
+                {exercise.muscleGroups.secondary.map(m => (
+                  <span
+                    key={m}
+                    className="px-3 py-1 rounded-full text-sm border border-[var(--color-border)] text-[var(--color-text-secondary)]"
+                  >
+                    {MUSCLE_GROUP_LABELS[m]}
+                  </span>
+                ))}
+              </div>
+              <div className="flex gap-3 text-xs text-[var(--color-text-muted)]">
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: '#39FF14' }} />
+                  Principal
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: '#22c55e' }} />
+                  Secundario
+                </span>
+              </div>
+            </div>
+            <MuscleDiagram
+              primary={exercise.primaryMuscles}
+              secondary={exercise.muscleGroups.secondary}
+              size="sm"
+            />
           </div>
         </div>
 

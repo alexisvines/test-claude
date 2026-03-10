@@ -1,4 +1,4 @@
-import { getDatabase } from './infrastructure/persistence/dexie/GymOSDatabase'
+import { getDatabase } from './infrastructure/persistence/dexie/KovaDatabase'
 import { getContainer } from './infrastructure/container/DIContainer'
 import { getSeedExercises } from './infrastructure/persistence/seed/exercises.seed'
 import { getSeedRoutineTemplates } from './infrastructure/persistence/seed/routineTemplates.seed'

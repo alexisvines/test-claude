@@ -1,5 +1,5 @@
 {
-  "name": "gymos",
+  "name": "kova",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -41,8 +41,10 @@
     "dexie": "^4.0.9",
     "immer": "^10.1.1",
     "jotai": "^2.10.3",
+    "lucide-react": "^0.577.0",
     "motion": "^11.11.17",
     "react": "^18.3.1",
+    "react-body-highlighter": "^2.0.5",
     "react-dom": "^18.3.1",
     "recharts": "^2.13.3",
     "tailwind-merge": "^2.5.4",
