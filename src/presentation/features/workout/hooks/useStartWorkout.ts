@@ -37,8 +37,13 @@ export function useStartWorkout() {
           const today = new Date().getDay()
           const todayDay = routine.days[today % routine.days.length]
           if (todayDay && !todayDay.isRestDay) {
-            store.setExercises(todayDay.exercises.map(ex => ({
-              exercise: { id: ex.exerciseId } as Exercise,
+            const exerciseDetails = await Promise.all(
+              todayDay.exercises.map(ex =>
+                container.exerciseRepo.findById(ex.exerciseId).catch(() => null)
+              )
+            )
+            store.setExercises(todayDay.exercises.map((ex, i) => ({
+              exercise: exerciseDetails[i] ?? ({ id: ex.exerciseId } as Exercise),
               targetSets: ex.sets,
               targetRepRange: ex.repRange,
               targetRIR: ex.rirTarget,
