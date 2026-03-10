@@ -8,7 +8,7 @@ import { cn } from '@/shared/utils/cn'
 import type { Exercise } from '@/domain/entities/Exercise'
 import { MUSCLE_GROUP_LABELS } from '@/domain/value-objects/MuscleGroup'
 import { MuscleDiagram } from '@/presentation/features/exercises/components/MuscleDiagram'
-import { useExerciseThumbnail } from '@/shared/hooks/useExerciseGif'
+import { useExerciseThumbnail, useWgerImage } from '@/shared/hooks/useExerciseGif'
 
 const MUSCLE_ICONS: Record<string, LucideIcon> = {
   chest: Dumbbell,
@@ -26,22 +26,53 @@ const MUSCLE_ICONS: Record<string, LucideIcon> = {
   traps: Mountain,
 }
 
+const MUSCLE_COLOR: Record<string, string> = {
+  chest: '#FF6B6B', back: '#4ECDC4', lats: '#45B7D1', shoulders: '#96CEB4',
+  biceps: '#FFEAA7', triceps: '#DDA0DD', forearms: '#F0E68C', quadriceps: '#98FB98',
+  hamstrings: '#FFB347', glutes: '#FF69B4', calves: '#87CEEB', core: '#FFA500', traps: '#C0C0C0',
+}
+
 function ExerciseMediaRow({ exercise }: { exercise: Exercise }) {
   const thumbnailUrl = useExerciseThumbnail(exercise.name)
-  const [imgError, setImgError] = useState(false)
+  const [githubFailed, setGithubFailed] = useState(false)
+  const { data: wgerUrl, isLoading: wgerLoading } = useWgerImage(exercise.name, githubFailed)
+  const [wgerFailed, setWgerFailed] = useState(false)
+
+  const showPlaceholder = githubFailed && (wgerFailed || (!wgerLoading && !wgerUrl))
+  const muscleColor = MUSCLE_COLOR[exercise.primaryMuscles[0] ?? ''] ?? '#888'
 
   return (
     <div className="flex gap-3 pt-3 items-center">
       {/* Exercise image */}
       <div className="w-24 h-24 rounded-[var(--radius-md)] bg-[var(--color-surface-03)] overflow-hidden shrink-0 flex items-center justify-center">
-        {imgError ? (
-          <span className="text-3xl">🏋️</span>
+        {showPlaceholder ? (
+          <div
+            className="w-full h-full flex flex-col items-center justify-center gap-1"
+            style={{ background: `linear-gradient(135deg, ${muscleColor}22, ${muscleColor}44)` }}
+          >
+            <span className="text-2xl">🏋️</span>
+            <span className="text-[8px] text-[var(--color-text-muted)] text-center px-1 leading-tight">
+              {exercise.nameEs}
+            </span>
+          </div>
+        ) : wgerLoading && githubFailed ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <span className="w-6 h-6 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : wgerUrl && githubFailed ? (
+          <img
+            src={wgerUrl}
+            alt={exercise.nameEs}
+            loading="lazy"
+            onError={() => setWgerFailed(true)}
+            className="w-full h-full object-cover"
+          />
         ) : (
           <img
             src={thumbnailUrl}
             alt={exercise.nameEs}
             loading="lazy"
-            onError={() => setImgError(true)}
+            onError={() => setGithubFailed(true)}
             className="w-full h-full object-cover"
           />
         )}

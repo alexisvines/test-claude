@@ -36,6 +36,9 @@ export function SetLogger({
   const [rir, setRir] = useState(2)
   const [rpe, setRpe] = useState(8)
   const [notes, setNotes] = useState('')
+  // tracks which value was auto-linked from the other
+  const [rpeAutoFromRir, setRpeAutoFromRir] = useState(true)
+  const [rirAutoFromRpe, setRirAutoFromRpe] = useState(false)
 
   function handleLog() {
     vibrate(50)
@@ -131,20 +134,36 @@ export function SetLogger({
       {/* Opciones Avanzadas (RIR + RPE) */}
       <details className="group">
         <summary className="cursor-pointer list-none flex items-center justify-between py-1 text-xs text-[var(--color-text-secondary)] uppercase tracking-wide select-none">
-          Opciones Avanzadas
+          Opciones Avanzadas — RIR / RPE
           <span className="transition-transform group-open:rotate-180 text-base">▾</span>
         </summary>
         <div className="space-y-4 pt-3">
+          {/* Info chip */}
+          <p className="text-[10px] text-[var(--color-text-muted)] bg-[var(--color-surface-03)] rounded-lg px-3 py-1.5">
+            💡 RIR y RPE están vinculados: cambiar uno actualiza el otro automáticamente.
+          </p>
+
           {/* RIR */}
           <div className="space-y-2">
-            <label className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide">
-              RIR — Reps en Reserva
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide">
+                RIR — Reps en Reserva
+              </label>
+              {rirAutoFromRpe && (
+                <span className="text-[10px] text-[var(--color-accent)] font-semibold">auto ← RPE</span>
+              )}
+            </div>
             <div className="grid grid-cols-6 gap-1">
               {RIR_OPTIONS.map((r, i) => (
                 <button
                   key={r}
-                  onClick={() => { vibrate(30); setRir(r) }}
+                  onClick={() => {
+                    vibrate(30)
+                    setRir(r)
+                    setRpe(Math.max(6, Math.min(10, 10 - r)))
+                    setRpeAutoFromRir(true)
+                    setRirAutoFromRpe(false)
+                  }}
                   className={cn(
                     'h-12 rounded-[var(--radius-sm)] text-sm font-bold transition-all active:scale-95',
                     rir === r ? 'text-black scale-105' : 'text-[var(--color-text-secondary)] bg-[var(--color-surface-03)]'
@@ -162,24 +181,40 @@ export function SetLogger({
             </div>
           </div>
 
-          {/* RPE (optional) */}
+          {/* RPE */}
           <div className="space-y-2">
-            <label className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide">
-              RPE (opcional)
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide">
+                RPE — Esfuerzo Percibido
+              </label>
+              {rpeAutoFromRir && (
+                <span className="text-[10px] text-[var(--color-accent)] font-semibold">auto ← RIR</span>
+              )}
+            </div>
             <input
               type="range"
               min={6}
               max={10}
               step={0.5}
               value={rpe}
-              onChange={e => setRpe(parseFloat(e.target.value))}
+              onChange={e => {
+                const val = parseFloat(e.target.value)
+                setRpe(val)
+                setRir(Math.max(0, Math.min(5, Math.round(10 - val))))
+                setRirAutoFromRpe(true)
+                setRpeAutoFromRir(false)
+              }}
               className="w-full accent-[var(--color-accent)]"
               aria-label={`RPE ${rpe}`}
             />
             <div className="flex justify-between text-xs text-[var(--color-text-muted)]">
               <span>6 — Ligero</span>
-              <span className="text-[var(--color-text-secondary)] font-mono">RPE {rpe}</span>
+              <span
+                className="font-mono font-bold px-2 py-0.5 rounded"
+                style={{ color: RIR_COLORS[Math.max(0, Math.min(5, Math.round(10 - rpe)))] }}
+              >
+                RPE {rpe}
+              </span>
               <span>10 — Máximo</span>
             </div>
           </div>

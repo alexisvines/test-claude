@@ -117,12 +117,12 @@ function WeekStrip({ days, isActive }: { days: readonly RoutineDay[]; isActive: 
                 {days[expandedDay]!.isRestDay ? ' · Descanso' : ` · ${days[expandedDay]!.exercises.length} ejercicios`}
               </p>
               {!days[expandedDay]!.isRestDay && (days[expandedDay]!.exercises ?? []).map((ex, j) => (
-                <div key={j} className="flex items-center gap-2 text-xs">
-                  <span className="text-[var(--color-accent)] font-mono font-bold w-6 shrink-0">{ex.sets}×</span>
-                  <span className="text-[var(--color-text-primary)] flex-1 truncate">
+                <div key={j} className="flex items-start gap-2 text-xs">
+                  <span className="text-[var(--color-accent)] font-mono font-bold w-6 shrink-0 pt-0.5">{ex.sets}×</span>
+                  <span className="text-[var(--color-text-primary)] flex-1 leading-tight">
                     {ex.exerciseId.split('-').slice(1).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
                   </span>
-                  <span className="text-[var(--color-text-muted)] shrink-0">
+                  <span className="text-[var(--color-text-muted)] shrink-0 pt-0.5">
                     {ex.repRange.min}-{ex.repRange.max}r
                   </span>
                 </div>
@@ -177,7 +177,7 @@ function RoutineCard({ routine, onDelete, onSetActive, isActive, onStartWorkout,
               )}
             </div>
             {routine.description && (
-              <p className="text-xs text-[var(--color-text-secondary)] mt-0.5 line-clamp-2">{routine.description}</p>
+              <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">{routine.description}</p>
             )}
           </div>
           <button
@@ -264,13 +264,73 @@ const TEMPLATE_STYLES: Record<string, { gradient: string; icon: string; label: s
   ppl:      { gradient: 'from-red-950/60 to-red-900/20',    icon: '🔄', label: 'PPL' },
 }
 
-function getTemplateStyle(name: string) {
+interface TemplateInfo {
+  level: string
+  goal: string
+  benefits: string[]
+  proTip: string
+  frequency: string
+}
+
+const TEMPLATE_INFO: Record<string, TemplateInfo> = {
+  ppl: {
+    level: 'Intermedio–Avanzado',
+    goal: 'Hipertrofia & Volumen',
+    frequency: '6 días/sem',
+    benefits: [
+      'Máxima frecuencia de estímulo por grupo muscular (2×/sem)',
+      'Volumen semanal alto: ideal para maximizar hipertrofia',
+      'Separación óptima empuje/jalón reduce fatiga acumulada',
+    ],
+    proTip: 'Usa RIR 2 en la mayoría de series. Las últimas series de aislamiento pueden llegar a RIR 0–1 para mayor estímulo.',
+  },
+  fuerza: {
+    level: 'Principiante–Intermedio',
+    goal: 'Fuerza Máxima',
+    frequency: '3 días/sem',
+    benefits: [
+      'Progresión lineal semana a semana en los levantamientos básicos',
+      'Squat, Press, Peso Muerto: los movimientos más eficientes',
+      'Menos fatiga acumulada, ideal para progresar consistentemente',
+    ],
+    proTip: 'Incrementa 2.5 kg cada sesión. Si fallas 3 sesiones seguidas en un peso, baja 10% y vuelve a subir.',
+  },
+  fullbody: {
+    level: 'Todos los niveles',
+    goal: 'Mantenimiento & Fitness General',
+    frequency: '3 días/sem',
+    benefits: [
+      'Alta frecuencia de cada músculo (3×/sem) maximiza síntesis proteica',
+      'Perfecto si tienes poco tiempo o eres principiante',
+      'Equilibrio entre volumen, fuerza y recuperación',
+    ],
+    proTip: 'Varía los ejercicios entre días (Día 1, 2, 3) para estimular el músculo con ángulos distintos.',
+  },
+  upper: {
+    level: 'Intermedio',
+    goal: 'Hipertrofia Balanceada',
+    frequency: '4 días/sem',
+    benefits: [
+      'Equilibrio entre fuerza (Upper A / Lower A) y volumen (Upper B / Lower B)',
+      '4 días permite mayor recuperación que PPL sin perder frecuencia',
+      'Ideal para atletas con vida ocupada que quieren resultados consistentes',
+    ],
+    proTip: 'Los días de "Volumen" (B) son ideales para trabajar cerca del fallo con RIR 1. Los días de "Fuerza" (A) quedate en RIR 2–3.',
+  },
+}
+
+function getTemplateKey(name: string) {
   const n = name.toLowerCase()
-  if (n.includes('full') || n.includes('cuerpo')) return TEMPLATE_STYLES.fullbody!
-  if (n.includes('fuerza') || n.includes('5x5')) return TEMPLATE_STYLES.fuerza!
-  if (n.includes('upper') || n.includes('lower')) return TEMPLATE_STYLES.upper!
-  if (n.includes('ppl') || n.includes('push') || n.includes('pull')) return TEMPLATE_STYLES.ppl!
-  return TEMPLATE_STYLES.fullbody!
+  if (n.includes('ppl') || n.includes('push') || n.includes('pull')) return 'ppl'
+  if (n.includes('fuerza') || n.includes('5x5')) return 'fuerza'
+  if (n.includes('full') || n.includes('cuerpo')) return 'fullbody'
+  if (n.includes('upper') || n.includes('lower')) return 'upper'
+  return 'fullbody'
+}
+
+function getTemplateStyle(name: string) {
+  const key = getTemplateKey(name)
+  return TEMPLATE_STYLES[key]!
 }
 
 function TemplateCard({ template, onImport, isPending }: {
@@ -278,7 +338,9 @@ function TemplateCard({ template, onImport, isPending }: {
   onImport: () => void
   isPending: boolean
 }) {
+  const [expanded, setExpanded] = useState(false)
   const style = getTemplateStyle(template.name)
+  const info = TEMPLATE_INFO[getTemplateKey(template.name)]!
   const muscles = getRoutineMuscles(template)
 
   return (
@@ -297,34 +359,83 @@ function TemplateCard({ template, onImport, isPending }: {
             {style.icon}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-bold text-[var(--color-text-primary)]">{template.name}</h3>
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-[var(--color-text-secondary)]">
                 {style.label}
               </span>
             </div>
-            <div className="flex gap-3 mt-1 text-xs text-[var(--color-text-secondary)]">
+            <div className="flex gap-3 mt-1 text-xs text-[var(--color-text-secondary)] flex-wrap">
               <span>📅 {template.trainingDays.length} días/sem</span>
               <span>💪 {template.totalExercises} ejercicios</span>
+              <span className="text-[var(--color-text-muted)]">· {info.level}</span>
             </div>
           </div>
         </div>
 
-        {/* Description */}
+        {/* Goal + Description */}
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-[var(--color-text-secondary)] font-semibold">
+            🎯 {info.goal}
+          </span>
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-[var(--color-text-secondary)]">
+            {info.frequency}
+          </span>
+        </div>
+
         {template.description && (
-          <p className="text-xs text-[var(--color-text-secondary)] line-clamp-2">{template.description}</p>
+          <p className="text-xs text-[var(--color-text-secondary)]">{template.description}</p>
         )}
 
-        {/* Muscle chips */}
-        {muscles.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {muscles.map(m => (
-              <span key={m} className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/30 text-[var(--color-text-secondary)]">
-                {MUSCLE_EMOJI[m] ?? '🏋️'} {MUSCLE_GROUP_LABELS[m as keyof typeof MUSCLE_GROUP_LABELS] ?? m}
-              </span>
-            ))}
-          </div>
-        )}
+        {/* Expandable detail */}
+        <AnimatePresence>
+          {expanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="space-y-3 pt-1">
+                {/* Benefits */}
+                <div className="space-y-1.5">
+                  <p className="text-[10px] uppercase tracking-wide font-bold text-[var(--color-text-muted)]">Beneficios</p>
+                  {info.benefits.map((b, i) => (
+                    <div key={i} className="flex gap-2 text-xs text-[var(--color-text-secondary)]">
+                      <span className="text-[var(--color-accent)] shrink-0">✓</span>
+                      <span>{b}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Pro tip */}
+                <div className="bg-black/20 rounded-xl p-3">
+                  <p className="text-[10px] uppercase tracking-wide font-bold text-[var(--color-accent)] mb-1">💡 Consejo Pro</p>
+                  <p className="text-xs text-[var(--color-text-secondary)]">{info.proTip}</p>
+                </div>
+
+                {/* Muscle chips */}
+                {muscles.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {muscles.map(m => (
+                      <span key={m} className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/30 text-[var(--color-text-secondary)]">
+                        {MUSCLE_EMOJI[m] ?? '🏋️'} {MUSCLE_GROUP_LABELS[m as keyof typeof MUSCLE_GROUP_LABELS] ?? m}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Toggle details */}
+        <button
+          onClick={() => setExpanded(p => !p)}
+          className="w-full text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors text-left"
+        >
+          {expanded ? '▲ Ocultar detalles' : '▼ Ver beneficios y consejos pro'}
+        </button>
 
         {/* Import button */}
         <button

@@ -120,6 +120,7 @@ const FREE_EXERCISE_DB_MAP: Record<string, string> = {
   'Cable Lateral Raise':          'Cable_Lateral_Raise',
   'Rear Delt Fly':                'Bent_Over_Dumbbell_Rear_Delt_Row',
   'Front Raise':                  'Dumbbell_Front_Raise',
+  'Dumbbell Front Raise':         'Dumbbell_Front_Raise',
   // BICEPS
   'Barbell Curl':                 'Barbell_Curl',
   'EZ-Bar Curl':                  'EZ_Barbell_Curl',
@@ -164,6 +165,9 @@ const FREE_EXERCISE_DB_MAP: Record<string, string> = {
   'Hanging Leg Raise':            'Hanging_Leg_Raise',
   'Ab Wheel Rollout':             'Ab_Wheel_Rollout',
   'Dragon Flag':                  'Dragon_Flag',
+  'Russian Twist':                'Russian_Twist',
+  'Cable Crunch':                 'Cable_Crunch',
+  'Bicycle Crunch':               'Bicycle_Crunch',
   // TRAPS
   'Barbell Shrug':                'Barbell_Shrug',
   'Dumbbell Shrug':               'Dumbbell_Shrug',
@@ -173,6 +177,13 @@ const FREE_EXERCISE_DB_MAP: Record<string, string> = {
   // FOREARMS
   'Wrist Curl':                   'Wrist_Curl',
   'Reverse Curl':                 'Reverse_Curl',
+  // Additional exercises
+  'Incline Curl':                 'Dumbbell_Incline_Curl',
+  'Chest Fly':                    'Dumbbell_Fly',
+  'Seated Cable Row':             'Cable_Seated_Row',
+  'Single Leg Press':             'Leg_Press',
+  'Reverse Hyperextension':       'Back_Extension',
+  'Glute Ham Raise':              'Inverse_Leg_Curl',
 }
 
 export function useExerciseThumbnail(exerciseName: string): string {
