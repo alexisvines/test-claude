@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { motion, AnimatePresence } from 'motion/react'
 import { getContainer } from '@/infrastructure/container/DIContainer'
@@ -151,23 +151,6 @@ function RestTimerBanner({ timer, onSkip }: {
   )
 }
 
-function QuoteToast({ quote }: { quote: { text: string; author: string } | null }) {
-  return (
-    <AnimatePresence>
-      {quote && (
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          className="mx-4 mt-2 px-3 py-2 rounded-xl bg-[var(--color-surface-02)] border border-[var(--color-border)]"
-        >
-          <p className="text-xs text-[var(--color-text-secondary)] italic">"{quote.text}"</p>
-          <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">— {quote.author}</p>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  )
-}
 
 function SetRow({ set, index }: { set: LoggedSet; index: number }) {
   return (
@@ -405,6 +388,71 @@ function ExerciseBlock({
   )
 }
 
+// ─── Modal de finalización ────────────────────────────────────────────────────
+function FinishWorkoutModal({ onConfirm, onCancel, isPending, totalSets, elapsed }: {
+  onConfirm: () => void
+  onCancel: () => void
+  isPending: boolean
+  totalSets: number
+  elapsed: number
+}) {
+  const quote = useMemo(() => randomQuote(), [])
+
+  return (
+    <div className="fixed inset-0 bg-black/80 z-50 flex items-end p-4" onClick={onCancel}>
+      <motion.div
+        initial={{ y: 40, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className="w-full bg-[var(--color-surface-02)] rounded-2xl border border-[var(--color-border)] overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="p-5 space-y-4">
+          {/* Estadísticas del entrenamiento */}
+          <div className="flex gap-4 py-1">
+            <div className="flex-1 text-center">
+              <p className="font-mono text-3xl font-bold text-[var(--color-accent)]">{formatDuration(elapsed)}</p>
+              <p className="text-[11px] text-[var(--color-text-muted)] uppercase tracking-wide">Duración</p>
+            </div>
+            <div className="w-px bg-[var(--color-border)]" />
+            <div className="flex-1 text-center">
+              <p className="font-mono text-3xl font-bold text-[var(--color-text-primary)]">{totalSets}</p>
+              <p className="text-[11px] text-[var(--color-text-muted)] uppercase tracking-wide">Series</p>
+            </div>
+          </div>
+
+          {/* Frase motivacional */}
+          <div className="px-3 py-3 rounded-xl bg-[var(--color-surface-03)] border border-[var(--color-border)]">
+            <p className="text-sm text-[var(--color-text-secondary)] italic">"{quote.text}"</p>
+            <p className="text-xs text-[var(--color-text-muted)] mt-1">— {quote.author}</p>
+          </div>
+
+          <p className="text-center font-semibold text-[var(--color-text-primary)]">¿Finalizar el entrenamiento?</p>
+
+          <div className="flex gap-3">
+            <button
+              onClick={onCancel}
+              disabled={isPending}
+              className="flex-1 py-3 rounded-2xl text-sm font-bold text-[var(--color-text-secondary)] bg-[var(--color-surface-03)] border border-[var(--color-border)] disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={isPending}
+              className="flex-1 py-3 rounded-2xl text-sm font-black text-black flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-70"
+              style={{ backgroundColor: 'var(--color-accent)' }}
+            >
+              {isPending
+                ? <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                : '✓ Finalizar'}
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  )
+}
+
 // ─── Main Panel ───────────────────────────────────────────────────────────────
 export function ActiveWorkoutPanel() {
   const navigate = useNavigate()
@@ -416,9 +464,8 @@ export function ActiveWorkoutPanel() {
 
   // Which exercise has the active input row open
   const [activeExerciseId, setActiveExerciseId] = useState<string | null>(null)
-  // Quote toast state
-  const [currentQuote, setCurrentQuote] = useState<{ text: string; author: string } | null>(null)
-  const quoteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Modal de finalización
+  const [showFinishModal, setShowFinishModal] = useState(false)
   // Set completion flash
   const [setFlash, setSetFlash] = useState<string | null>(null)
 
@@ -472,13 +519,6 @@ export function ActiveWorkoutPanel() {
     void restore()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Show quote for 4 seconds ──────────────────────────────────────────────
-  function showQuote() {
-    if (quoteTimerRef.current) clearTimeout(quoteTimerRef.current)
-    setCurrentQuote(randomQuote())
-    quoteTimerRef.current = setTimeout(() => setCurrentQuote(null), 4000)
-  }
-
   // ── Record set mutation ───────────────────────────────────────────────────
   const recordSetMutation = useMutation({
     mutationFn: async (p: { exerciseIndex: number; weight: number; reps: number; rir: number }) => {
@@ -519,12 +559,12 @@ export function ActiveWorkoutPanel() {
       const vol = Math.round(data.set.weight * data.set.reps)
       setSetFlash(`Serie ${data.set.setNumber} ✓  ${data.set.weight > 0 ? `${data.set.weight}kg × ${data.set.reps} = ${vol}kg vol` : `${data.set.reps} reps`}`)
       setTimeout(() => setSetFlash(null), 2500)
-      // Show quote
-      showQuote()
       // Start rest timer
       timer.start(data.ex.restSeconds ?? 120)
     },
   })
+
+  const [finishError, setFinishError] = useState<string | null>(null)
 
   const completeWorkoutMutation = useMutation({
     mutationFn: async () => {
@@ -535,6 +575,9 @@ export function ActiveWorkoutPanel() {
       localStorage.removeItem(STORAGE_KEY)
       store.reset()
       void navigate({ to: '/' })
+    },
+    onError: (err) => {
+      setFinishError(err instanceof Error ? err.message : 'Error al guardar el entrenamiento')
     },
   })
 
@@ -597,9 +640,6 @@ export function ActiveWorkoutPanel() {
         )}
       </AnimatePresence>
 
-      {/* ── Quote toast ── */}
-      <QuoteToast quote={currentQuote} />
-
       {/* ── Scrollable exercise list ── */}
       <div className="flex-1 overflow-y-auto p-3 space-y-3 pb-28">
         {store.exercises.length === 0 ? (
@@ -627,18 +667,30 @@ export function ActiveWorkoutPanel() {
 
       {/* ── Bottom action ── */}
       <div className="fixed bottom-0 inset-x-0 px-4 py-3 bg-[var(--color-base)] border-t border-[var(--color-border)] safe-bottom">
+        {finishError && (
+          <p className="text-xs text-[var(--color-danger)] text-center mb-2">{finishError}</p>
+        )}
         <button
-          onClick={() => {
-            if (confirm('¿Finalizar el entrenamiento?')) completeWorkoutMutation.mutate()
-          }}
-          disabled={completeWorkoutMutation.isPending}
-          className="w-full py-3 rounded-2xl text-sm font-black text-white bg-red-600/90 hover:bg-red-600 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-70"
+          onClick={() => { setFinishError(null); setShowFinishModal(true) }}
+          className="w-full py-3 rounded-2xl text-sm font-black text-white bg-red-600/90 hover:bg-red-600 active:scale-95 transition-all flex items-center justify-center gap-2"
         >
-          {completeWorkoutMutation.isPending
-            ? <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            : <>✓ Finalizar entrenamiento — {totalSets} series</>}
+          ✓ Finalizar entrenamiento — {totalSets} series
         </button>
       </div>
+
+      {/* ── Modal de finalización ── */}
+      {showFinishModal && (
+        <FinishWorkoutModal
+          onConfirm={() => {
+            setShowFinishModal(false)
+            completeWorkoutMutation.mutate()
+          }}
+          onCancel={() => setShowFinishModal(false)}
+          isPending={completeWorkoutMutation.isPending}
+          totalSets={totalSets}
+          elapsed={elapsed}
+        />
+      )}
 
       {/* ── PR Banner ── */}
       <PRBanner
