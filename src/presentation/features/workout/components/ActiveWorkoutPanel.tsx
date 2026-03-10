@@ -9,10 +9,11 @@ import { useActiveWorkoutStore, type LoggedSet, type ActiveExercise } from '../s
 import { PRBanner } from './PRBanner'
 import { useRestTimer } from '../hooks/useRestTimer'
 import { useWakeLock } from '../hooks/useWakeLock'
-import { formatDuration } from '@/shared/utils/formatters'
+import { formatDuration, formatVolume } from '@/shared/utils/formatters'
 import { cn } from '@/shared/utils/cn'
 import { useMutation } from '@tanstack/react-query'
 import type { WorkoutSession } from '@/domain/entities/WorkoutSession'
+import type { CompleteWorkoutSessionResult } from '@/application/commands/CompleteWorkoutSession/CompleteWorkoutSessionHandler'
 import { MUSCLE_GROUP_LABELS } from '@/domain/value-objects/MuscleGroup'
 import {
   Dumbbell, Target, Layers, Maximize2, Triangle, Grip,
@@ -42,6 +43,20 @@ const QUOTES = [
 ]
 
 function randomQuote() { return QUOTES[Math.floor(Math.random() * QUOTES.length)]! }
+
+// ─── Chilean jokes ────────────────────────────────────────────────────────────
+const CHISTES_CHILENOS = [
+  '¿Por qué el chileno va al gimnasio? Pa\' poder comerse el chorrillana sin culpa, po.',
+  '¿Qué le dice el músculo a la grasa? "¡Ándate no má\', cabra chica!"',
+  '¿Cómo celebra un chileno su PR? "¡Qué la wea, lo hice!"... y se manda a cambiar al tiro.',
+  'Doctor: "¿Cuántas veces entrena a la semana?" Chileno: "Todos los días, po." Doctor: "¿Y descansa?" Chileno: "Cuando miro el celular entre series, poh."',
+  '¿Por qué el chileno no para de entrenar? Porque su mamá le dijo "no seái flojo" y él se lo tomó en serio.',
+  '¿Qué hace un chileno al terminar el gym? Se saca una selfie y le manda ubicación a todos sus contactos al tiro.',
+  '¿Por qué el chileno nunca falta al gym? Porque pagó la mensualidad y en Chile nadie regala nada, po.',
+  'Chileno en el gym: "Una serie más." (lleva 2 horas) "Una serie más." (sigue ahí) "Una serie más..."',
+]
+
+function randomChiste() { return CHISTES_CHILENOS[Math.floor(Math.random() * CHISTES_CHILENOS.length)]! }
 
 // ─── Persistence ──────────────────────────────────────────────────────────────
 const STORAGE_KEY = 'kova-workout-v3'
@@ -389,15 +404,14 @@ function ExerciseBlock({
 }
 
 // ─── Modal de finalización ────────────────────────────────────────────────────
-function FinishWorkoutModal({ onConfirm, onCancel, isPending, totalSets, elapsed }: {
+function FinishWorkoutModal({ onConfirm, onCancel, isPending, totalSets, elapsed, isComplete }: {
   onConfirm: () => void
   onCancel: () => void
   isPending: boolean
   totalSets: number
   elapsed: number
+  isComplete: boolean
 }) {
-  const quote = useMemo(() => randomQuote(), [])
-
   return (
     <div className="fixed inset-0 bg-black/80 z-50 flex items-end p-4" onClick={onCancel}>
       <motion.div
@@ -420,13 +434,14 @@ function FinishWorkoutModal({ onConfirm, onCancel, isPending, totalSets, elapsed
             </div>
           </div>
 
-          {/* Frase motivacional */}
-          <div className="px-3 py-3 rounded-xl bg-[var(--color-surface-03)] border border-[var(--color-border)]">
-            <p className="text-sm text-[var(--color-text-secondary)] italic">"{quote.text}"</p>
-            <p className="text-xs text-[var(--color-text-muted)] mt-1">— {quote.author}</p>
-          </div>
-
-          <p className="text-center font-semibold text-[var(--color-text-primary)]">¿Finalizar el entrenamiento?</p>
+          <p className="text-center font-semibold text-[var(--color-text-primary)]">
+            {isComplete ? '¿Guardar y finalizar el entrenamiento?' : '¿Terminar el entrenamiento antes de completarlo?'}
+          </p>
+          {!isComplete && (
+            <p className="text-center text-xs text-[var(--color-text-muted)] -mt-2">
+              Quedan series sin registrar. Igual se guardará lo que lleves.
+            </p>
+          )}
 
           <div className="flex gap-3">
             <button
@@ -444,12 +459,117 @@ function FinishWorkoutModal({ onConfirm, onCancel, isPending, totalSets, elapsed
             >
               {isPending
                 ? <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                : '✓ Finalizar'}
+                : '✓ Guardar'}
             </button>
           </div>
         </div>
       </motion.div>
     </div>
+  )
+}
+
+// ─── Pantalla de resumen post-entrenamiento ────────────────────────────────────
+function WorkoutSummaryOverlay({ result, elapsed, onDismiss }: {
+  result: CompleteWorkoutSessionResult
+  elapsed: number
+  onDismiss: () => void
+}) {
+  const quote = useMemo(() => randomQuote(), [])
+  const chiste = useMemo(() => randomChiste(), [])
+  const duration = result.durationMinutes > 0 ? result.durationMinutes : elapsed
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="fixed inset-0 z-50 bg-[var(--color-base)] flex flex-col overflow-y-auto"
+    >
+      <div className="flex flex-col items-center px-5 pt-12 pb-8 gap-6 min-h-full">
+
+        {/* Encabezado celebratorio */}
+        <motion.div
+          initial={{ scale: 0.7, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.1, type: 'spring', stiffness: 300 }}
+          className="text-center"
+        >
+          <p className="text-7xl mb-3">🏆</p>
+          <h1 className="font-display text-4xl font-black text-[var(--color-accent)] uppercase tracking-wide leading-tight">
+            ¡Gran trabajo!
+          </h1>
+          <p className="text-[var(--color-text-secondary)] text-sm mt-1">Entrenamiento completado</p>
+        </motion.div>
+
+        {/* Estadísticas */}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="w-full grid grid-cols-3 gap-3"
+        >
+          {[
+            { value: formatDuration(duration), label: 'Duración' },
+            { value: String(result.totalSets), label: 'Series' },
+            { value: formatVolume(result.totalVolumeKg), label: 'Volumen' },
+          ].map(stat => (
+            <div key={stat.label} className="bg-[var(--color-surface-02)] rounded-2xl p-4 text-center border border-[var(--color-border)]">
+              <p className="font-mono text-2xl font-black text-[var(--color-text-primary)]">{stat.value}</p>
+              <p className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wide mt-0.5">{stat.label}</p>
+            </div>
+          ))}
+        </motion.div>
+
+        {/* Logros desbloqueados */}
+        {result.newAchievements.length > 0 && (
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="w-full bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-4"
+          >
+            <p className="text-xs text-yellow-400 font-bold uppercase tracking-wide mb-2">🏅 Logros desbloqueados</p>
+            {result.newAchievements.map(name => (
+              <p key={name} className="text-sm text-[var(--color-text-primary)] font-semibold">{name}</p>
+            ))}
+          </motion.div>
+        )}
+
+        {/* Frase motivacional */}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.35 }}
+          className="w-full bg-[var(--color-surface-02)] rounded-2xl p-4 border border-[var(--color-border)]"
+        >
+          <p className="text-sm text-[var(--color-text-secondary)] italic leading-relaxed">"{quote.text}"</p>
+          <p className="text-xs text-[var(--color-text-muted)] mt-2">— {quote.author}</p>
+        </motion.div>
+
+        {/* Chiste chileno */}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.45 }}
+          className="w-full bg-[var(--color-surface-02)] rounded-2xl p-4 border border-[var(--color-border)]"
+        >
+          <p className="text-xs text-[var(--color-text-muted)] font-bold uppercase tracking-wide mb-2">😂 Chiste del día</p>
+          <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">{chiste}</p>
+        </motion.div>
+
+        {/* Botón al dashboard */}
+        <motion.button
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.55 }}
+          onClick={onDismiss}
+          className="w-full py-4 rounded-2xl text-base font-black text-black active:scale-95 transition-transform mt-auto"
+          style={{ backgroundColor: 'var(--color-accent)' }}
+        >
+          ¡Al Dashboard! →
+        </motion.button>
+
+      </div>
+    </motion.div>
   )
 }
 
@@ -468,6 +588,8 @@ export function ActiveWorkoutPanel() {
   const [showFinishModal, setShowFinishModal] = useState(false)
   // Set completion flash
   const [setFlash, setSetFlash] = useState<string | null>(null)
+  // Resultado al completar — activa la pantalla de resumen
+  const [workoutResult, setWorkoutResult] = useState<CompleteWorkoutSessionResult | null>(null)
 
   // ── Persistence: save on every change ──────────────────────────────────────
   useEffect(() => {
@@ -571,10 +693,14 @@ export function ActiveWorkoutPanel() {
       if (!store.sessionId) return null
       return container.completeWorkoutHandler.handle({ sessionId: store.sessionId })
     },
-    onSuccess: () => {
-      localStorage.removeItem(STORAGE_KEY)
-      store.reset()
-      void navigate({ to: '/' })
+    onSuccess: (result) => {
+      // Mostrar pantalla de resumen antes de limpiar el estado
+      setWorkoutResult(result ?? {
+        durationMinutes: elapsed,
+        totalSets,
+        totalVolumeKg: 0,
+        newAchievements: [],
+      })
     },
     onError: (err) => {
       setFinishError(err instanceof Error ? err.message : 'Error al guardar el entrenamiento')
@@ -602,6 +728,8 @@ export function ActiveWorkoutPanel() {
   }
 
   const totalSets = store.exercises.reduce((a, e) => a + e.loggedSets.length, 0)
+  const completedExercisesCount = store.exercises.filter(ex => ex.loggedSets.length >= ex.targetSets).length
+  const isWorkoutComplete = store.exercises.length > 0 && completedExercisesCount === store.exercises.length
 
   return (
     <div className="flex flex-col h-full">
@@ -615,7 +743,11 @@ export function ActiveWorkoutPanel() {
         </div>
         <div className="text-right">
           <p className="font-mono text-2xl font-bold text-[var(--color-accent)]">{formatDuration(elapsed)}</p>
-          <p className="text-[11px] text-[var(--color-text-muted)]">{totalSets} series</p>
+          <p className="text-[11px] text-[var(--color-text-muted)]">
+            {store.exercises.length > 0
+              ? `${completedExercisesCount}/${store.exercises.length} ejercicios · ${totalSets} series`
+              : `${totalSets} series`}
+          </p>
         </div>
       </div>
 
@@ -670,12 +802,22 @@ export function ActiveWorkoutPanel() {
         {finishError && (
           <p className="text-xs text-[var(--color-danger)] text-center mb-2">{finishError}</p>
         )}
-        <button
-          onClick={() => { setFinishError(null); setShowFinishModal(true) }}
-          className="w-full py-3 rounded-2xl text-sm font-black text-white bg-red-600/90 hover:bg-red-600 active:scale-95 transition-all flex items-center justify-center gap-2"
-        >
-          ✓ Finalizar entrenamiento — {totalSets} series
-        </button>
+        {isWorkoutComplete ? (
+          <button
+            onClick={() => { setFinishError(null); setShowFinishModal(true) }}
+            className="w-full py-4 rounded-2xl text-base font-black text-black active:scale-95 transition-all flex items-center justify-center gap-2"
+            style={{ backgroundColor: 'var(--color-accent)', boxShadow: 'var(--shadow-accent)' }}
+          >
+            🏆 ¡Listo! Finalizar entrenamiento
+          </button>
+        ) : (
+          <button
+            onClick={() => { setFinishError(null); setShowFinishModal(true) }}
+            className="w-full py-3 rounded-2xl text-sm font-bold text-white/70 bg-white/10 border border-white/10 active:scale-95 transition-all flex items-center justify-center gap-2"
+          >
+            Terminar antes — {totalSets} series registradas
+          </button>
+        )}
       </div>
 
       {/* ── Modal de finalización ── */}
@@ -689,6 +831,20 @@ export function ActiveWorkoutPanel() {
           isPending={completeWorkoutMutation.isPending}
           totalSets={totalSets}
           elapsed={elapsed}
+          isComplete={isWorkoutComplete}
+        />
+      )}
+
+      {/* ── Pantalla de resumen post-entrenamiento ── */}
+      {workoutResult && (
+        <WorkoutSummaryOverlay
+          result={workoutResult}
+          elapsed={elapsed}
+          onDismiss={() => {
+            localStorage.removeItem(STORAGE_KEY)
+            store.reset()
+            void navigate({ to: '/' })
+          }}
         />
       )}
 
