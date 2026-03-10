@@ -209,65 +209,68 @@ function ActiveSetInput({
   function vibrate(ms: number) { if ('vibrate' in navigator) navigator.vibrate(ms) }
 
   return (
-    <div className="px-3 pb-3 pt-2 space-y-3 bg-[var(--color-accent-dim)]/20 rounded-b-xl border-t border-[var(--color-border)]">
-      {/* SET HEADER */}
-      <div className="grid grid-cols-[32px_1fr_1fr_auto] gap-2 items-center">
+    <div className="px-3 pb-3 pt-2 space-y-2 bg-[var(--color-accent-dim)]/20 rounded-b-xl border-t border-[var(--color-border)]">
+      {/* Main row: SET# | KG | REPS | ✓ — sin botones −/+ para que no se salga de pantalla */}
+      <div className="grid grid-cols-[28px_1fr_1fr_44px] gap-2 items-center">
         <span className="font-mono text-[var(--color-accent)] text-xs font-bold text-center">{setNumber}</span>
 
-        {/* Weight */}
-        <div className="flex items-center gap-1">
-          <button onClick={() => { vibrate(20); setWeight(w => Math.max(0, Math.round((w - 2.5) * 10) / 10)) }}
-            className="w-7 h-7 rounded-lg bg-[var(--color-surface-03)] text-[var(--color-text-secondary)] font-bold text-sm flex items-center justify-center">−</button>
-          <input
-            type="number"
-            value={weight === 0 ? '' : weight}
-            onChange={e => setWeight(parseFloat(e.target.value) || 0)}
-            placeholder="kg"
-            className="flex-1 min-w-0 text-center font-mono font-bold text-base bg-[var(--color-surface-03)] rounded-lg px-1 py-1 text-[var(--color-text-primary)] border border-[var(--color-border)] focus:border-[var(--color-accent)] outline-none"
-            inputMode="decimal"
-          />
-          <button onClick={() => { vibrate(20); setWeight(w => Math.round((w + 2.5) * 10) / 10) }}
-            className="w-7 h-7 rounded-lg bg-[var(--color-surface-03)] text-[var(--color-accent)] font-bold text-sm flex items-center justify-center">+</button>
-        </div>
+        {/* Weight input */}
+        <input
+          type="number"
+          value={weight === 0 ? '' : weight}
+          onChange={e => setWeight(parseFloat(e.target.value) || 0)}
+          placeholder="kg"
+          className="w-full text-center font-mono font-bold text-lg bg-[var(--color-surface-03)] rounded-xl py-2 text-[var(--color-text-primary)] border border-[var(--color-border)] focus:border-[var(--color-accent)] outline-none"
+          inputMode="decimal"
+        />
 
-        {/* Reps */}
-        <div className="flex items-center gap-1">
+        {/* Reps stepper */}
+        <div className="flex items-center gap-0.5">
           <button onClick={() => { vibrate(20); setReps(r => Math.max(1, r - 1)) }}
-            className="w-7 h-7 rounded-lg bg-[var(--color-surface-03)] text-[var(--color-text-secondary)] font-bold text-sm flex items-center justify-center">−</button>
-          <span className="flex-1 text-center font-mono font-bold text-base text-[var(--color-text-primary)]">{reps}</span>
+            className="w-8 h-10 rounded-l-xl bg-[var(--color-surface-03)] text-[var(--color-text-secondary)] font-bold text-base border border-[var(--color-border)] flex items-center justify-center shrink-0">−</button>
+          <span className="flex-1 text-center font-mono font-bold text-lg text-[var(--color-text-primary)] bg-[var(--color-surface-03)] h-10 flex items-center justify-center border-y border-[var(--color-border)]">{reps}</span>
           <button onClick={() => { vibrate(20); setReps(r => Math.min(100, r + 1)) }}
-            className="w-7 h-7 rounded-lg bg-[var(--color-surface-03)] text-[var(--color-accent)] font-bold text-sm flex items-center justify-center">+</button>
+            className="w-8 h-10 rounded-r-xl bg-[var(--color-surface-03)] text-[var(--color-accent)] font-bold text-base border border-[var(--color-border)] flex items-center justify-center shrink-0">+</button>
         </div>
 
         {/* Confirm */}
         <button
           onClick={() => { vibrate(50); onLog(weight, reps, rir) }}
           disabled={isPending}
-          className="w-9 h-9 rounded-xl text-black font-black text-base flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50"
+          className="w-11 h-10 rounded-xl text-black font-black text-lg flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50 shrink-0"
           style={{ backgroundColor: 'var(--color-accent)' }}
         >
           {isPending ? <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" /> : '✓'}
         </button>
       </div>
 
+      {/* Weight quick-adjust row */}
+      <div className="flex gap-1 items-center">
+        <span className="text-[10px] text-[var(--color-text-muted)] shrink-0 w-7 text-center">kg</span>
+        {[-5, -2.5, +2.5, +5].map(v => (
+          <button key={v} onClick={() => { vibrate(15); setWeight(w => Math.max(0, Math.round((w + v) * 10) / 10)) }}
+            className="flex-1 py-1 rounded-lg bg-[var(--color-surface-03)] text-[10px] font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] border border-[var(--color-border)]">
+            {v > 0 ? `+${v}` : v}
+          </button>
+        ))}
+      </div>
+
       {/* RIR compact row */}
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] text-[var(--color-text-muted)] shrink-0">RIR</span>
-        <div className="flex gap-1">
+      <div className="flex items-center gap-1.5">
+        <span className="text-[10px] text-[var(--color-text-muted)] shrink-0 w-7 text-center">RIR</span>
+        <div className="flex gap-1 flex-1">
           {[0, 1, 2, 3, 4, 5].map((r, i) => (
             <button
               key={r}
               onClick={() => { vibrate(20); setRir(r) }}
-              className={cn('w-8 h-6 rounded text-[10px] font-bold transition-all', rir === r ? 'text-black scale-105' : 'text-[var(--color-text-muted)] bg-[var(--color-surface-03)]')}
+              className={cn('flex-1 h-7 rounded text-[10px] font-bold transition-all', rir === r ? 'text-black scale-105' : 'text-[var(--color-text-muted)] bg-[var(--color-surface-03)]')}
               style={rir === r ? { backgroundColor: RIR_COLORS[i] } : {}}
             >
               {r}
             </button>
           ))}
         </div>
-        <span className="text-[10px] text-[var(--color-text-muted)] ml-auto cursor-pointer" onClick={onCancel}>
-          cancelar
-        </span>
+        <button onClick={onCancel} className="text-[10px] text-[var(--color-text-muted)] hover:text-red-400 px-1 shrink-0">✕</button>
       </div>
     </div>
   )
@@ -296,8 +299,11 @@ function ExerciseBlock({
 
   return (
     <div className={cn('rounded-2xl border overflow-hidden transition-all', isActive ? 'border-[var(--color-accent)]' : 'border-[var(--color-border)]', isComplete && !isLogging ? 'opacity-70' : '')}>
-      {/* Exercise header */}
-      <div className="p-3 flex items-center gap-3 bg-[var(--color-surface-02)]">
+      {/* Exercise header — tap para ver instrucciones */}
+      <button
+        onClick={() => setShowInstructions(p => !p)}
+        className="w-full p-3 flex items-center gap-3 bg-[var(--color-surface-02)] text-left"
+      >
         <div className={cn('w-9 h-9 flex items-center justify-center rounded-xl text-[var(--color-text-secondary)] shrink-0', isActive ? 'bg-[var(--color-accent-dim)]' : 'bg-[var(--color-surface-03)]')}>
           <Icon size={18} />
         </div>
@@ -306,6 +312,7 @@ function ExerciseBlock({
           <p className="text-[11px] text-[var(--color-text-muted)]">
             {ex.exercise.primaryMuscles.map(m => MUSCLE_GROUP_LABELS[m]).join(', ')}
             {' · '}{ex.targetRepRange.min}–{ex.targetRepRange.max} reps · RIR {ex.targetRIR}
+            {' · '}<span className="text-[var(--color-accent)]">{showInstructions ? '▲' : '▼ info'}</span>
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -314,7 +321,7 @@ function ExerciseBlock({
           </span>
           {isComplete && <span className="text-[var(--color-success)] text-base">✓</span>}
         </div>
-      </div>
+      </button>
 
       {/* Set table header */}
       {ex.loggedSets.length > 0 && (
@@ -340,21 +347,13 @@ function ExerciseBlock({
           isPending={isPending}
         />
       ) : (
-        <div className="px-3 py-2 flex items-center gap-2 border-t border-[var(--color-border)]">
+        <div className="px-3 py-2 border-t border-[var(--color-border)]">
           <button
             onClick={onAddSet}
-            className="flex-1 py-1.5 rounded-xl text-xs font-bold border border-dashed border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors"
+            className="w-full py-2 rounded-xl text-xs font-bold border border-dashed border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors"
           >
             + Serie {ex.loggedSets.length + 1}
           </button>
-          {ex.exercise.instructions.length > 0 && (
-            <button
-              onClick={() => setShowInstructions(p => !p)}
-              className="text-[10px] text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors px-2 py-1.5"
-            >
-              {showInstructions ? '▲' : '▼'} info
-            </button>
-          )}
         </div>
       )}
 
