@@ -1,10 +1,10 @@
-import type { GymOSDomainEvent } from '../../domain/events'
+import type { KovaDomainEvent } from '../../domain/events'
 
-export type EventHandler<T extends GymOSDomainEvent> = (event: T) => Promise<void>
+export type EventHandler<T extends KovaDomainEvent> = (event: T) => Promise<void>
 
 export interface IEventBus {
-  publish(event: GymOSDomainEvent): Promise<void>
-  subscribe<T extends GymOSDomainEvent>(
+  publish(event: KovaDomainEvent): Promise<void>
+  subscribe<T extends KovaDomainEvent>(
     eventType: T['type'],
     handler: EventHandler<T>
   ): void

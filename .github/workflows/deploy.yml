@@ -1,4 +1,4 @@
-name: Deploy GymOS to GitHub Pages
+name: Deploy Kova to GitHub Pages
 
 on:
   push:

@@ -1,10 +1,10 @@
 import type { IAthleteRepository } from '../../../domain/repositories/IAthleteRepository'
 import { Athlete } from '../../../domain/entities/Athlete'
 import { Achievement, ALL_ACHIEVEMENTS } from '../../../domain/entities/Achievement'
-import type { GymOSDatabase } from './GymOSDatabase'
+import type { KovaDatabase } from './KovaDatabase'
 
 export class DexieAthleteRepository implements IAthleteRepository {
-  constructor(private readonly db: GymOSDatabase) {}
+  constructor(private readonly db: KovaDatabase) {}
 
   async save(athlete: Athlete): Promise<void> {
     await this.db.athletes.put({

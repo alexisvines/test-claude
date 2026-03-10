@@ -32,7 +32,7 @@ for (const size of sizes) {
     <rect x="${size * 0.64}" y="${size * 0.12}" width="${size * 0.02}" height="${size * 0.16}" rx="${size * 0.01}" fill="#8C8C8C"/>
   </g>
   <!-- "OS" text -->
-  <text x="${size * 0.5}" y="${size * 0.82}" text-anchor="middle" font-family="'Arial Black', Arial, sans-serif" font-weight="900" font-size="${size * 0.16}" fill="#C8FF00" letter-spacing="-0.5">GymOS</text>
+  <text x="${size * 0.5}" y="${size * 0.82}" text-anchor="middle" font-family="'Arial Black', Arial, sans-serif" font-weight="900" font-size="${size * 0.16}" fill="#C8FF00" letter-spacing="-0.5">Kova</text>
 </svg>`
 
   writeFileSync(join(iconsDir, `icon-${size}.svg`), svg)

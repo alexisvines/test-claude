@@ -92,7 +92,7 @@ export function SettingsPage() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `gymos-backup-${new Date().toISOString().slice(0, 10)}.json`
+    a.download = `kova-backup-${new Date().toISOString().slice(0, 10)}.json`
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -148,8 +148,8 @@ export function SettingsPage() {
             Obtén tu clave gratuita en{' '}
             <span className="text-[var(--color-accent)]">Google AI Studio</span>.
           </p>
-          <APIKeyInput label="Gemini API Key (gratuita)" storageKey="gymos_gemini_key" />
-          <APIKeyInput label="Claude API Key (alternativa)" storageKey="gymos_claude_key" />
+          <APIKeyInput label="Gemini API Key (gratuita)" storageKey="kova_gemini_key" />
+          <APIKeyInput label="Claude API Key (alternativa)" storageKey="kova_claude_key" />
         </div>
       </section>
 
@@ -162,7 +162,7 @@ export function SettingsPage() {
               Exportar
             </Button>
           </SettingRow>
-          <SettingRow label="Versión de app" description="GymOS PWA">
+          <SettingRow label="Versión de app" description="Kova PWA">
             <span className="font-mono text-sm text-[var(--color-text-secondary)]">1.0.0</span>
           </SettingRow>
         </div>
@@ -170,8 +170,8 @@ export function SettingsPage() {
 
       {/* About */}
       <section className="text-center py-4 space-y-1">
-        <p className="font-display text-2xl font-bold text-[var(--color-accent)]">GymOS</p>
-        <p className="text-xs text-[var(--color-text-muted)]">Tu sistema operativo de entrenamiento</p>
+        <p className="font-display text-2xl font-bold text-[var(--color-accent)]">Kova</p>
+        <p className="text-xs text-[var(--color-text-muted)]">Entrena con intensidad</p>
         <p className="text-xs text-[var(--color-text-muted)]">100% offline · Datos locales · Sin suscripción</p>
       </section>
 

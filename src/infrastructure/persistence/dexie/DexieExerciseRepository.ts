@@ -1,10 +1,10 @@
 import type { IExerciseRepository, ExerciseFilter } from '../../../domain/repositories/IExerciseRepository'
 import { Exercise } from '../../../domain/entities/Exercise'
 import type { MuscleGroup } from '../../../domain/value-objects/MuscleGroup'
-import type { GymOSDatabase, ExerciseRecord } from './GymOSDatabase'
+import type { KovaDatabase, ExerciseRecord } from './KovaDatabase'
 
 export class DexieExerciseRepository implements IExerciseRepository {
-  constructor(private readonly db: GymOSDatabase) {}
+  constructor(private readonly db: KovaDatabase) {}
 
   async save(exercise: Exercise): Promise<void> {
     const json = exercise.toJSON()

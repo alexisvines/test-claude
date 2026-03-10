@@ -59,7 +59,7 @@ export interface AchievementRecord {
   unlockedAt?: string
 }
 
-export class GymOSDatabase extends Dexie {
+export class KovaDatabase extends Dexie {
   workoutSessions!: Table<WorkoutSessionRecord>
   exercises!: Table<ExerciseRecord>
   routines!: Table<RoutineRecord>
@@ -67,7 +67,7 @@ export class GymOSDatabase extends Dexie {
   achievements!: Table<AchievementRecord>
 
   constructor() {
-    super('GymOSDB')
+    super('KovaDB')
     this.version(1).stores({
       workoutSessions: 'id, athleteId, status, startedAt, completedAt',
       exercises: 'id, name, nameEs, movementPattern, difficulty, isCustom',
@@ -78,11 +78,11 @@ export class GymOSDatabase extends Dexie {
   }
 }
 
-let dbInstance: GymOSDatabase | null = null
+let dbInstance: KovaDatabase | null = null
 
-export function getDatabase(): GymOSDatabase {
+export function getDatabase(): KovaDatabase {
   if (!dbInstance) {
-    dbInstance = new GymOSDatabase()
+    dbInstance = new KovaDatabase()
   }
   return dbInstance
 }

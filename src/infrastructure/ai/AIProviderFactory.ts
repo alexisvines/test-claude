@@ -52,7 +52,7 @@ export class AIProviderFactory {
 
   private getStoredKey(provider: string): string {
     try {
-      return localStorage.getItem(`gymos_${provider}_key`) ?? ''
+      return localStorage.getItem(`kova_${provider}_key`) ?? ''
     } catch {
       return ''
     }
