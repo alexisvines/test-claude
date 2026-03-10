@@ -236,7 +236,10 @@ function ActiveSetInput({
         <div className="flex items-center gap-0.5">
           <button onClick={() => { vibrate(20); setReps(r => Math.max(1, r - 1)) }}
             className="w-8 h-10 rounded-l-xl bg-[var(--color-surface-03)] text-[var(--color-text-secondary)] font-bold text-base border border-[var(--color-border)] flex items-center justify-center shrink-0">−</button>
-          <span className="flex-1 text-center font-mono font-bold text-lg text-[var(--color-text-primary)] bg-[var(--color-surface-03)] h-10 flex items-center justify-center border-y border-[var(--color-border)]">{reps}</span>
+          <span className="flex-1 text-center bg-[var(--color-surface-03)] h-10 flex flex-col items-center justify-center border-y border-[var(--color-border)]">
+            <span className="font-mono font-bold text-base text-[var(--color-text-primary)] leading-none">{reps}</span>
+            <span className="text-[9px] text-[var(--color-text-muted)] leading-none mt-0.5">reps</span>
+          </span>
           <button onClick={() => { vibrate(20); setReps(r => Math.min(100, r + 1)) }}
             className="w-8 h-10 rounded-r-xl bg-[var(--color-surface-03)] text-[var(--color-accent)] font-bold text-base border border-[var(--color-border)] flex items-center justify-center shrink-0">+</button>
         </div>
