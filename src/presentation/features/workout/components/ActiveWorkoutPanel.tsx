@@ -58,6 +58,25 @@ const CHISTES_CHILENOS = [
 
 function randomChiste() { return CHISTES_CHILENOS[Math.floor(Math.random() * CHISTES_CHILENOS.length)]! }
 
+// ─── Plate calculator ─────────────────────────────────────────────────────────
+const BAR_KG = 20
+const PLATES_KG = [20, 15, 10, 5, 2.5, 1.25]
+
+function getPlateBreakdown(totalKg: number): { text: string; warning: boolean } | null {
+  if (totalKg <= 0) return null
+  if (totalKg < BAR_KG) return null
+  if (totalKg === BAR_KG) return { text: 'Solo barra (20kg)', warning: false }
+  const perSide = Math.round(((totalKg - BAR_KG) / 2) * 100) / 100
+  const parts: string[] = []
+  let rem = perSide
+  for (const p of PLATES_KG) {
+    const n = Math.floor(rem / p + 0.001)
+    if (n > 0) { parts.push(`${n > 1 ? n + '×' : ''}${p}`); rem = Math.round((rem - p * n) * 100) / 100 }
+  }
+  if (rem > 0.05) return { text: '⚠ Peso no armable con discos estándar', warning: true }
+  return { text: parts.join(' + ') + ' por lado', warning: false }
+}
+
 // ─── Persistence ──────────────────────────────────────────────────────────────
 const STORAGE_KEY = 'kova-workout-v3'
 
@@ -263,6 +282,21 @@ function ActiveSetInput({
           </button>
         ))}
       </div>
+
+      {/* Calculadora de discos */}
+      {(() => {
+        const bd = getPlateBreakdown(weight)
+        if (!bd) return null
+        return (
+          <div className="flex items-center gap-1.5">
+            <span className="shrink-0 w-7 text-center text-base">🏋️</span>
+            <p className={cn('text-[10px] font-mono font-semibold truncate',
+              bd.warning ? 'text-[var(--color-warning)]' : 'text-[var(--color-accent)]')}>
+              {bd.text}
+            </p>
+          </div>
+        )
+      })()}
 
       {/* RIR compact row */}
       <div className="flex items-center gap-1.5">
