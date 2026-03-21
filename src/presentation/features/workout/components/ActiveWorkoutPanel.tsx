@@ -832,7 +832,7 @@ export function ActiveWorkoutPanel() {
       </div>
 
       {/* ── Bottom action ── */}
-      <div className="fixed bottom-0 inset-x-0 px-4 py-3 bg-[var(--color-base)] border-t border-[var(--color-border)] safe-bottom">
+      <div className="fixed bottom-16 inset-x-0 px-4 py-3 bg-[var(--color-base)] border-t border-[var(--color-border)]">
         {finishError && (
           <p className="text-xs text-[var(--color-danger)] text-center mb-2">{finishError}</p>
         )}

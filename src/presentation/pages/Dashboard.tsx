@@ -6,6 +6,7 @@ import { formatVolume, formatDate } from '@/shared/utils/formatters'
 import { cn } from '@/shared/utils/cn'
 import { useActiveWorkoutStore } from '@/presentation/features/workout/stores/activeWorkout.store'
 import { useStartWorkout } from '@/presentation/features/workout/hooks/useStartWorkout'
+import { WeeklyVolumeWidget } from '@/presentation/features/progress/components/WeeklyVolumeWidget'
 import type { WorkoutSession } from '@/domain/entities/WorkoutSession'
 import type { Routine } from '@/domain/entities/Routine'
 
@@ -232,6 +233,9 @@ export function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* Semáforo de volumen semanal */}
+      {athlete && <WeeklyVolumeWidget athleteId={athlete.id} />}
 
       {/* Recent workouts */}
       {recentSessions.length > 0 && (

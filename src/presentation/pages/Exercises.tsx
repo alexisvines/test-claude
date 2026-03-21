@@ -46,9 +46,10 @@ function NoImagePlaceholder({ muscle, className }: { muscle: string; className?:
 
 function ExerciseThumbnail({ exercise }: { exercise: Exercise }) {
   const thumbnailUrl = useExerciseThumbnail(exercise.name)
-  const [stage, setStage] = useState<'thumb' | 'gif' | 'wger' | 'error'>('thumb')
+  // Empezar con ExerciseDB GIF (más confiable en móvil que GitHub raw)
+  const [stage, setStage] = useState<'gif' | 'thumb' | 'wger' | 'error'>('gif')
 
-  // Only fire API queries when the previous source fails
+  // Solo disparar queries cuando la etapa corresponde
   const { data: gifUrl, isLoading: gifLoading } = useExerciseDbGif(
     stage === 'gif' ? exercise.name : ''
   )
@@ -80,16 +81,11 @@ function ExerciseThumbnail({ exercise }: { exercise: Exercise }) {
     )
   }
 
-  if (stage === 'gif') {
-    if (gifLoading) {
-      return <div className={`${containerCls} bg-[var(--color-surface-03)] animate-pulse`} />
-    }
-    if (!gifUrl) {
-      return <WgerFallbackTrigger onReady={() => setStage('wger')} containerCls={containerCls} />
-    }
+  if (stage === 'thumb') {
+    // GitHub JPG estático — fallback cuando ExerciseDB no tiene el ejercicio
     return (
       <img
-        src={gifUrl}
+        src={thumbnailUrl}
         alt={exercise.nameEs}
         loading="lazy"
         decoding="async"
@@ -99,14 +95,21 @@ function ExerciseThumbnail({ exercise }: { exercise: Exercise }) {
     )
   }
 
-  // stage === 'thumb' — try GitHub static JPG first
+  // stage === 'gif' — ExerciseDB API (GIF animado, primera opción)
+  if (gifLoading) {
+    return <div className={`${containerCls} bg-[var(--color-surface-03)] animate-pulse`} />
+  }
+  if (!gifUrl) {
+    // ExerciseDB no tiene este ejercicio → intentar GitHub JPG
+    return <WgerFallbackTrigger onReady={() => setStage('thumb')} containerCls={containerCls} />
+  }
   return (
     <img
-      src={thumbnailUrl}
+      src={gifUrl}
       alt={exercise.nameEs}
       loading="lazy"
       decoding="async"
-      onError={() => setStage('gif')}
+      onError={() => setStage('thumb')}
       className={`${containerCls} object-cover bg-[var(--color-surface-03)]`}
     />
   )
