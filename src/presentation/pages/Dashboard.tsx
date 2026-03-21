@@ -282,6 +282,11 @@ export function Dashboard() {
         </div>
       )}
 
+      {/* Versión */}
+      <p className="text-center text-[10px] text-[var(--color-text-muted)] pb-2">
+        Kova v0.3 · 2026-03-21 · cf1215b
+      </p>
+
       {/* FAB — Start Workout */}
       <div className="h-4" />
       <motion.div
