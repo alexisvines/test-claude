@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 
-const EXERCISEDB_BASE = 'https://exercisedb.dev/api/v1'
+const EXERCISEDB_BASE = 'https://exercisedb.dev/api/v2'
 
 interface ExerciseDbItem {
   id: string

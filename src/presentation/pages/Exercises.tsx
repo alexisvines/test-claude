@@ -8,6 +8,7 @@ import { useExerciseImages, useExerciseDbGif, useExerciseThumbnail, useWgerImage
 import { cn } from '@/shared/utils/cn'
 import type { Exercise } from '@/domain/entities/Exercise'
 import { MuscleDiagram } from '@/presentation/features/exercises/components/MuscleDiagram'
+import { AnimatedExercisePlaceholder } from '@/presentation/features/exercises/components/AnimatedExercisePlaceholder'
 
 const EQUIPMENT_LABELS: Record<string, string> = {
   barbell: 'Barra', dumbbell: 'Mancuerna', cable: 'Polea', machine: 'Máquina',
@@ -59,7 +60,14 @@ function ExerciseThumbnail({ exercise }: { exercise: Exercise }) {
   const containerCls = 'w-14 h-14 rounded-[var(--radius-md)] shrink-0'
 
   if (stage === 'error') {
-    return <NoImagePlaceholder muscle={primaryMuscle} className={containerCls} />
+    return (
+      <AnimatedExercisePlaceholder
+        equipment={exercise.equipment[0]}
+        primaryMuscle={primaryMuscle}
+        size="thumb"
+        className={containerCls}
+      />
+    )
   }
 
   if (stage === 'wger') {
@@ -67,7 +75,14 @@ function ExerciseThumbnail({ exercise }: { exercise: Exercise }) {
       return <div className={`${containerCls} bg-[var(--color-surface-03)] animate-pulse`} />
     }
     if (!wgerUrl) {
-      return <NoImagePlaceholder muscle={primaryMuscle} className={containerCls} />
+      return (
+        <AnimatedExercisePlaceholder
+          equipment={exercise.equipment[0]}
+          primaryMuscle={primaryMuscle}
+          size="thumb"
+          className={containerCls}
+        />
+      )
     }
     return (
       <img
@@ -208,7 +223,7 @@ function ExerciseDetail({ exercise, onClose }: { exercise: Exercise; onClose: ()
                 /* Final fallback: JPG crossfade */
                 imgState === 'error' ? (
                   <div className="h-40 flex items-center justify-center">
-                    <NoImagePlaceholder muscle={primaryMuscle} className="w-24 h-24 rounded-2xl" />
+                    <AnimatedExercisePlaceholder equipment={exercise.equipment[0]} primaryMuscle={primaryMuscle} size="full" className="w-40 h-40" />
                   </div>
                 ) : (
                   <>
