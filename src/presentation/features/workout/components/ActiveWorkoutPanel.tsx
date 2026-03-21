@@ -44,19 +44,21 @@ const QUOTES = [
 
 function randomQuote() { return QUOTES[Math.floor(Math.random() * QUOTES.length)]! }
 
-// ─── Chilean jokes ────────────────────────────────────────────────────────────
-const CHISTES_CHILENOS = [
-  '¿Por qué el chileno va al gimnasio? Pa\' poder comerse el chorrillana sin culpa, po.',
-  '¿Qué le dice el músculo a la grasa? "¡Ándate no má\', cabra chica!"',
-  '¿Cómo celebra un chileno su PR? "¡Qué la wea, lo hice!"... y se manda a cambiar al tiro.',
-  'Doctor: "¿Cuántas veces entrena a la semana?" Chileno: "Todos los días, po." Doctor: "¿Y descansa?" Chileno: "Cuando miro el celular entre series, poh."',
-  '¿Por qué el chileno no para de entrenar? Porque su mamá le dijo "no seái flojo" y él se lo tomó en serio.',
-  '¿Qué hace un chileno al terminar el gym? Se saca una selfie y le manda ubicación a todos sus contactos al tiro.',
-  '¿Por qué el chileno nunca falta al gym? Porque pagó la mensualidad y en Chile nadie regala nada, po.',
-  'Chileno en el gym: "Una serie más." (lleva 2 horas) "Una serie más." (sigue ahí) "Una serie más..."',
+// ─── Tips de investigación científica ────────────────────────────────────────
+const SABIAS_QUE: { tip: string; fuente: string }[] = [
+  { tip: 'Consumir 20–40g de proteína dentro de las 2h post-entrenamiento maximiza la síntesis proteica muscular.', fuente: 'Morton et al., 2018 · British Journal of Sports Medicine' },
+  { tip: 'Dormir menos de 6h reduce hasta un 30% la recuperación muscular y eleva el cortisol cronicamente.', fuente: 'Dattilo et al., 2011 · Medical Hypotheses' },
+  { tip: 'La cafeína (3–6mg/kg de peso) mejora el rendimiento en fuerza y resistencia entre un 3–16%.', fuente: 'Grgic et al., 2021 · British Journal of Sports Medicine' },
+  { tip: 'Entrenar cada músculo 2 veces por semana produce más hipertrofia que 1 vez, con el mismo volumen total.', fuente: 'Schoenfeld et al., 2016 · Journal of Strength and Conditioning Research' },
+  { tip: 'La creatina monohidratada aumenta fuerza máxima ~8% y masa muscular ~1.4kg en promedio en 4–8 semanas.', fuente: 'Lanhers et al., 2017 · European Journal of Sport Science' },
+  { tip: 'Descansos de 3–5 minutos entre series producen más hipertrofia que descansos de 1 minuto con mismo volumen.', fuente: 'Schoenfeld et al., 2016 · Journal of Strength and Conditioning Research' },
+  { tip: 'El entrenamiento de fuerza 2–3 veces por semana reduce el riesgo de diabetes tipo 2 en un 34%.', fuente: 'Grontved et al., 2012 · JAMA Internal Medicine' },
+  { tip: 'La velocidad óptima de pérdida de grasa es 0.5–1% del peso corporal por semana para preservar músculo.', fuente: 'Barakat et al., 2020 · Strength & Conditioning Journal' },
+  { tip: 'Hacer cardio después del entrenamiento de fuerza (no antes) preserva mejor las adaptaciones de fuerza.', fuente: 'Fyfe et al., 2016 · Journal of Applied Physiology' },
+  { tip: 'El RIR (repeticiones en reserva) es tan preciso como el RPE para medir intensidad y predecir adaptaciones.', fuente: 'Zourdos et al., 2016 · Journal of Strength and Conditioning Research' },
 ]
 
-function randomChiste() { return CHISTES_CHILENOS[Math.floor(Math.random() * CHISTES_CHILENOS.length)]! }
+function randomSabias() { return SABIAS_QUE[Math.floor(Math.random() * SABIAS_QUE.length)]! }
 
 // ─── Plate calculator ─────────────────────────────────────────────────────────
 const BAR_KG = 20
@@ -509,7 +511,7 @@ function WorkoutSummaryOverlay({ result, elapsed, onDismiss }: {
   onDismiss: () => void
 }) {
   const quote = useMemo(() => randomQuote(), [])
-  const chiste = useMemo(() => randomChiste(), [])
+  const sabias = useMemo(() => randomSabias(), [])
   const duration = result.durationMinutes > 0 ? result.durationMinutes : elapsed
 
   return (
@@ -586,8 +588,9 @@ function WorkoutSummaryOverlay({ result, elapsed, onDismiss }: {
           transition={{ delay: 0.45 }}
           className="w-full bg-[var(--color-surface-02)] rounded-2xl p-4 border border-[var(--color-border)]"
         >
-          <p className="text-xs text-[var(--color-text-muted)] font-bold uppercase tracking-wide mb-2">😂 Chiste del día</p>
-          <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">{chiste}</p>
+          <p className="text-xs text-[var(--color-text-muted)] font-bold uppercase tracking-wide mb-2">🔬 ¿Sabías que?</p>
+          <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">{sabias.tip}</p>
+          <p className="text-[10px] text-[var(--color-text-muted)] mt-2 italic">{sabias.fuente}</p>
         </motion.div>
 
         {/* Botón al dashboard */}
@@ -844,13 +847,17 @@ export function ActiveWorkoutPanel() {
           >
             🏆 ¡Listo! Finalizar entrenamiento
           </button>
-        ) : (
+        ) : totalSets > 0 ? (
           <button
             onClick={() => { setFinishError(null); setShowFinishModal(true) }}
             className="w-full py-3 rounded-2xl text-sm font-bold text-white/70 bg-white/10 border border-white/10 active:scale-95 transition-all flex items-center justify-center gap-2"
           >
             Terminar antes — {totalSets} series registradas
           </button>
+        ) : (
+          <p className="text-center text-xs text-[var(--color-text-muted)] py-2">
+            Registra al menos una serie para guardar el entrenamiento
+          </p>
         )}
       </div>
 

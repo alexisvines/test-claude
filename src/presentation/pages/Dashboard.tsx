@@ -161,7 +161,10 @@ export function Dashboard() {
           <h1 className="font-display text-3xl font-bold text-[var(--color-text-primary)]">
             {athlete?.name ?? 'Atleta'}
           </h1>
-          <p className="text-sm text-[var(--color-accent)]">{athlete?.levelLabel ?? 'Novato'}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-[var(--color-accent)]">{athlete?.levelLabel ?? 'Novato'}</p>
+            <span className="text-[10px] text-[var(--color-text-muted)] font-mono">v0.4</span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-12 h-12 rounded-full bg-[var(--color-surface-03)] flex items-center justify-center text-2xl">
@@ -281,11 +284,6 @@ export function Dashboard() {
           <p className="text-[var(--color-text-secondary)]">Tu primera sesión te espera</p>
         </div>
       )}
-
-      {/* Versión */}
-      <p className="text-center text-[10px] text-[var(--color-text-muted)] pb-2">
-        Kova v0.3 · 2026-03-21 · cf1215b
-      </p>
 
       {/* FAB — Start Workout */}
       <div className="h-4" />
