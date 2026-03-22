@@ -215,13 +215,14 @@ function ActiveSetInput({
   setNumber: number
   lastSet?: LoggedSet
   targetRepRange: { min: number; max: number }
-  onLog: (weight: number, reps: number, rir: number) => void
+  onLog: (weight: number, reps: number, rir: number | null) => void
   onCancel: () => void
   isPending: boolean
 }) {
   const [weight, setWeight] = useState(lastSet?.weight ?? 0)
   const [reps, setReps] = useState(lastSet?.reps ?? targetRepRange.min)
-  const [rir, setRir] = useState(lastSet?.rir ?? 2)
+  // null = no especificado (opcional)
+  const [rir, setRir] = useState<number | null>(lastSet?.rir ?? null)
 
   const RIR_COLORS = ['#FF2D55', '#FF6B35', '#34C759', '#30D158', '#0A84FF', '#5856D6']
 
@@ -300,10 +301,19 @@ function ActiveSetInput({
         )
       })()}
 
-      {/* RIR compact row */}
+      {/* RIR compact row — opcional */}
       <div className="flex items-center gap-1.5">
-        <span className="text-[10px] text-[var(--color-text-muted)] shrink-0 w-7 text-center">RIR</span>
+        <div className="shrink-0 w-7 text-center">
+          <span className="text-[10px] text-[var(--color-text-muted)]">RIR</span>
+        </div>
         <div className="flex gap-1 flex-1">
+          {/* Botón "–" para no especificar RIR */}
+          <button
+            onClick={() => { vibrate(20); setRir(null) }}
+            className={cn('w-7 h-7 rounded text-[10px] font-bold transition-all shrink-0', rir === null ? 'bg-[var(--color-surface-03)] text-[var(--color-text-secondary)] ring-1 ring-white/20' : 'text-[var(--color-text-muted)] bg-[var(--color-surface-03)]/50')}
+          >
+            –
+          </button>
           {[0, 1, 2, 3, 4, 5].map((r, i) => (
             <button
               key={r}
@@ -317,6 +327,9 @@ function ActiveSetInput({
         </div>
         <button onClick={onCancel} className="text-[10px] text-[var(--color-text-muted)] hover:text-red-400 px-1 shrink-0">✕</button>
       </div>
+      <p className="text-[9px] text-[var(--color-text-muted)] text-center -mt-1">
+        RIR = Reps en Reserva antes del fallo · opcional
+      </p>
     </div>
   )
 }
@@ -332,7 +345,7 @@ function ExerciseBlock({
   ex: ActiveExercise
   isActive: boolean
   onAddSet: () => void
-  onLog: (weight: number, reps: number, rir: number) => void
+  onLog: (weight: number, reps: number, rir: number | null) => void
   isPending: boolean
   activeExerciseId: string | null
 }) {
@@ -356,7 +369,7 @@ function ExerciseBlock({
           <p className="font-semibold text-sm text-[var(--color-text-primary)] leading-tight">{ex.exercise.nameEs}</p>
           <p className="text-[11px] text-[var(--color-text-muted)]">
             {ex.exercise.primaryMuscles.map(m => MUSCLE_GROUP_LABELS[m]).join(', ')}
-            {' · '}{ex.targetRepRange.min}–{ex.targetRepRange.max} reps · RIR {ex.targetRIR}
+            {' · '}{ex.targetRepRange.min}–{ex.targetRepRange.max} reps{ex.targetRIR != null ? ` · RIR ${ex.targetRIR}` : ''}
             {' · '}<span className="text-[var(--color-accent)]">{showInstructions ? '▲' : '▼ info'}</span>
           </p>
         </div>
@@ -680,10 +693,12 @@ export function ActiveWorkoutPanel() {
 
   // ── Record set mutation ───────────────────────────────────────────────────
   const recordSetMutation = useMutation({
-    mutationFn: async (p: { exerciseIndex: number; weight: number; reps: number; rir: number }) => {
+    mutationFn: async (p: { exerciseIndex: number; weight: number; reps: number; rir: number | null }) => {
       const ex = store.exercises[p.exerciseIndex]
       if (!store.sessionId || !ex) return null
 
+      // RIR opcional: si no se especificó, usar 2 (óptimo) como valor por defecto para el dominio
+      const rirValue = p.rir ?? 2
       const result = await container.recordSetHandler.handle({
         sessionId: store.sessionId,
         exerciseId: ex.exercise.id,
@@ -691,7 +706,7 @@ export function ActiveWorkoutPanel() {
         setNumber: ex.loggedSets.length + 1,
         weight: Weight.fromKg(p.weight),
         reps: p.reps,
-        rir: RIR.create(p.rir),
+        rir: RIR.create(rirValue),
         rpe: RPE.none(),
         notes: undefined,
       })
@@ -700,7 +715,7 @@ export function ActiveWorkoutPanel() {
         setNumber: ex.loggedSets.length + 1,
         weight: p.weight,
         reps: p.reps,
-        rir: p.rir,
+        rir: rirValue,
         rpe: 8,
         completedAt: new Date().toISOString(),
         isPersonalRecord: result.isPersonalRecord,
@@ -744,7 +759,7 @@ export function ActiveWorkoutPanel() {
     },
   })
 
-  const handleLog = useCallback((exerciseIndex: number, weight: number, reps: number, rir: number) => {
+  const handleLog = useCallback((exerciseIndex: number, weight: number, reps: number, rir: number | null) => {
     recordSetMutation.mutate({ exerciseIndex, weight, reps, rir })
   }, [recordSetMutation])
 

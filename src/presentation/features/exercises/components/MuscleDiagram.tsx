@@ -52,39 +52,72 @@ function buildData(
   }))
 }
 
+// Mapa de músculo → slugs afectados (unión de front+back, sin duplicados)
+const ALL_MAP: Record<MuscleGroup, Slug[]> = {
+  chest:      ['chest'],
+  back:       ['upper-back', 'lower-back'],
+  lats:       ['upper-back'],
+  shoulders:  ['deltoids'],
+  biceps:     ['biceps'],
+  triceps:    ['triceps'],
+  forearms:   ['forearm'],
+  quadriceps: ['quadriceps'],
+  hamstrings: ['hamstring'],
+  glutes:     ['gluteal'],
+  calves:     ['calves'],
+  core:       ['abs', 'obliques'],
+  traps:      ['trapezius'],
+}
+
 export function MuscleDiagram({
   primary,
   secondary,
   size = 'md',
+  /** Override de colores por grupo muscular — usado por MuscularFatigueMap */
+  colorOverride,
 }: {
   primary: MuscleGroup[]
   secondary: MuscleGroup[]
   size?: 'sm' | 'md' | 'lg'
+  colorOverride?: Partial<Record<MuscleGroup, string>>
 }) {
   const w = SIZES[size]
 
-  // Construir datos para cada vista — primarios con intensidad 2, secundarios con 1
-  // Se deduplican: si un músculo es primario, no se incluye como secundario
-  const primarySlugs = new Set([
-    ...primary.flatMap(m => FRONT_MAP[m] ?? []),
-    ...primary.flatMap(m => BACK_MAP[m] ?? []),
-  ])
-  const filteredSecondary = secondary.filter(m =>
-    [...(FRONT_MAP[m] ?? []), ...(BACK_MAP[m] ?? [])].every(s => !primarySlugs.has(s))
-  )
+  let frontData: { slug: Slug; intensity?: number; color?: string }[]
+  let backData: typeof frontData
+  let hasPrimary: boolean
+  let glowColor: string
 
-  const frontData = [
-    ...buildData(primary, FRONT_MAP, 2),
-    ...buildData(filteredSecondary, FRONT_MAP, 1),
-  ]
-  const backData = [
-    ...buildData(primary, BACK_MAP, 2),
-    ...buildData(filteredSecondary, BACK_MAP, 1),
-  ]
-
-  const hasPrimary = primary.length > 0
-  // Glow color según si hay músculos activos
-  const glowColor = hasPrimary ? 'rgba(200,255,0,0.35)' : 'transparent'
+  if (colorOverride) {
+    // Modo fatiga: cada músculo recibe su color de recuperación
+    frontData = Object.entries(colorOverride).flatMap(([muscle, color]) =>
+      (FRONT_MAP[muscle as MuscleGroup] ?? []).map(slug => ({ slug, color: color as string }))
+    )
+    backData = Object.entries(colorOverride).flatMap(([muscle, color]) =>
+      (BACK_MAP[muscle as MuscleGroup] ?? []).map(slug => ({ slug, color: color as string }))
+    )
+    hasPrimary = Object.keys(colorOverride).length > 0
+    glowColor = 'rgba(100,100,100,0.2)'
+  } else {
+    // Modo normal: primarios con intensidad 2, secundarios con 1
+    const primarySlugs = new Set([
+      ...primary.flatMap(m => FRONT_MAP[m] ?? []),
+      ...primary.flatMap(m => BACK_MAP[m] ?? []),
+    ])
+    const filteredSecondary = secondary.filter(m =>
+      [...(FRONT_MAP[m] ?? []), ...(BACK_MAP[m] ?? [])].every(s => !primarySlugs.has(s))
+    )
+    frontData = [
+      ...buildData(primary, FRONT_MAP, 2),
+      ...buildData(filteredSecondary, FRONT_MAP, 1),
+    ]
+    backData = [
+      ...buildData(primary, BACK_MAP, 2),
+      ...buildData(filteredSecondary, BACK_MAP, 1),
+    ]
+    hasPrimary = primary.length > 0
+    glowColor = hasPrimary ? 'rgba(200,255,0,0.35)' : 'transparent'
+  }
 
   const wrapperStyle: React.CSSProperties = {
     display: 'flex',
@@ -116,3 +149,6 @@ export function MuscleDiagram({
     </div>
   )
 }
+
+// Exportar ALL_MAP para uso del MuscularFatigueMap
+export { ALL_MAP }

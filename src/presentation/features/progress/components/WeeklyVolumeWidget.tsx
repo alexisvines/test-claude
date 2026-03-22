@@ -54,15 +54,17 @@ function VolumeBar({ sets, ranges, status }: { sets: number; ranges: { mev: numb
   const mavPct = (ranges.mav / ranges.mrv) * 100
 
   return (
-    <div className="relative h-2 rounded-full bg-[var(--color-surface-03)] overflow-hidden">
+    <div className="relative h-2 rounded-full bg-[var(--color-surface-03)] overflow-visible">
       {/* Marcadores MEV y MAV */}
       <div
-        className="absolute top-0 bottom-0 w-px bg-white/20 z-10"
-        style={{ left: `${mevPct}%` }}
+        className="absolute -top-1 bottom-0 w-px bg-white/30 z-10"
+        style={{ left: `${mevPct}%`, height: '16px' }}
+        title={`MEV: ${ranges.mev} series`}
       />
       <div
-        className="absolute top-0 bottom-0 w-px bg-white/20 z-10"
-        style={{ left: `${mavPct}%` }}
+        className="absolute -top-1 bottom-0 w-px bg-[var(--color-accent)]/40 z-10"
+        style={{ left: `${mavPct}%`, height: '16px' }}
+        title={`MAV: ${ranges.mav} series`}
       />
       {/* Barra de progreso */}
       <div
@@ -73,8 +75,24 @@ function VolumeBar({ sets, ranges, status }: { sets: number; ranges: { mev: numb
   )
 }
 
+// ── Chip explicativo de cada término ─────────────────────────────────────────
+function VolumeTermChip({ term, color, explanation }: { term: string; color: string; explanation: string }) {
+  return (
+    <div className="flex items-start gap-2 py-1.5">
+      <span
+        className="text-[10px] font-black px-1.5 py-0.5 rounded font-mono shrink-0 mt-0.5"
+        style={{ backgroundColor: `${color}25`, color }}
+      >
+        {term}
+      </span>
+      <span className="text-[11px] text-[var(--color-text-secondary)] leading-relaxed">{explanation}</span>
+    </div>
+  )
+}
+
 export function WeeklyVolumeWidget({ athleteId }: { athleteId: string }) {
   const [expanded, setExpanded] = useState(true)
+  const [showGlossary, setShowGlossary] = useState(false)
   const container = getContainer()
 
   const { data: muscleVolume, isLoading } = useQuery({
@@ -107,7 +125,6 @@ export function WeeklyVolumeWidget({ athleteId }: { athleteId: string }) {
         }
       }
 
-      // Construir filas para todos los grupos musculares que tienen rangos
       return (Object.keys(VOLUME_RANGES) as MuscleGroup[]).map(muscle => {
         const sets = setsPerMuscle.get(muscle) ?? 0
         const ranges = VOLUME_RANGES[muscle]
@@ -117,12 +134,10 @@ export function WeeklyVolumeWidget({ athleteId }: { athleteId: string }) {
     staleTime: 5 * 60 * 1000,
   })
 
-  // Solo mostrar músculos entrenados o con bajo MEV (no aburrir con todos en cero)
   const rows = (muscleVolume ?? []).filter(r => r.sets > 0 || r.status === 'none')
   const trainedRows = rows.filter(r => r.sets > 0).sort((a, b) => b.sets - a.sets)
   const displayRows = trainedRows.length > 0 ? trainedRows : []
 
-  // Resumen compacto para el header
   const optimal = (muscleVolume ?? []).filter(r => r.status === 'optimal').length
   const low = (muscleVolume ?? []).filter(r => r.status === 'low').length
   const over = (muscleVolume ?? []).filter(r => r.status === 'over' || r.status === 'high').length
@@ -140,7 +155,7 @@ export function WeeklyVolumeWidget({ athleteId }: { athleteId: string }) {
             Volumen semanal
           </h2>
           <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-            Últimos 7 días · MEV/MAV/MRV
+            Últimos 7 días · series por músculo
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -167,7 +182,6 @@ export function WeeklyVolumeWidget({ athleteId }: { athleteId: string }) {
         </div>
       </button>
 
-      {/* Contenido */}
       {expanded && (
         <div className="px-4 pb-4">
           {isLoading && (
@@ -192,7 +206,7 @@ export function WeeklyVolumeWidget({ athleteId }: { athleteId: string }) {
               {displayRows.map(({ muscle, sets, status, ranges }) => {
                 const config = STATUS_CONFIG[status]
                 return (
-                  <div key={muscle} className="space-y-1">
+                  <div key={muscle} className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-[var(--color-text-primary)]">
                         {MUSCLE_GROUP_LABELS[muscle]}
@@ -204,31 +218,79 @@ export function WeeklyVolumeWidget({ athleteId }: { athleteId: string }) {
                         >
                           {config.label}
                         </span>
+                        {/* series / MAV */}
                         <span className="font-mono text-xs text-[var(--color-text-muted)]">
-                          {sets}/{ranges.mav}
+                          {sets}<span className="opacity-50">/{ranges.mav}</span>
                         </span>
                       </div>
                     </div>
                     <VolumeBar sets={sets} ranges={ranges} status={status} />
+                    {/* Etiquetas MEV / MAV debajo de la barra */}
+                    <div className="relative h-3">
+                      <span
+                        className="absolute text-[9px] text-white/30 -translate-x-1/2"
+                        style={{ left: `${(ranges.mev / ranges.mrv) * 100}%` }}
+                      >
+                        MEV
+                      </span>
+                      <span
+                        className="absolute text-[9px] text-[var(--color-accent)]/40 -translate-x-1/2"
+                        style={{ left: `${(ranges.mav / ranges.mrv) * 100}%` }}
+                      >
+                        MAV
+                      </span>
+                    </div>
                   </div>
                 )
               })}
 
-              {/* Leyenda */}
-              <div className="pt-2 border-t border-[var(--color-border)] flex flex-wrap gap-x-4 gap-y-1">
-                {(['low', 'optimal', 'high', 'over'] as VolumeStatus[]).map(s => (
-                  <span
-                    key={s}
-                    className={cn('text-[10px] flex items-center gap-1')}
-                    style={{ color: STATUS_CONFIG[s].color }}
+              {/* Leyenda + toggle glosario */}
+              <div className="pt-2 border-t border-[var(--color-border)]">
+                <div className="flex flex-wrap gap-x-4 gap-y-1 items-center">
+                  {(['low', 'optimal', 'high', 'over'] as VolumeStatus[]).map(s => (
+                    <span
+                      key={s}
+                      className={cn('text-[10px] flex items-center gap-1')}
+                      style={{ color: STATUS_CONFIG[s].color }}
+                    >
+                      <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: STATUS_CONFIG[s].color }} />
+                      {STATUS_CONFIG[s].label}
+                    </span>
+                  ))}
+                  <button
+                    onClick={e => { e.stopPropagation(); setShowGlossary(g => !g) }}
+                    className="ml-auto text-[10px] text-[var(--color-accent)]/70 hover:text-[var(--color-accent)] transition-colors flex items-center gap-1"
                   >
-                    <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: STATUS_CONFIG[s].color }} />
-                    {STATUS_CONFIG[s].label}
-                  </span>
-                ))}
-                <span className="text-[10px] text-[var(--color-text-muted)] ml-auto">
-                  Líneas: MEV · MAV
-                </span>
+                    {showGlossary ? '▲' : 'ⓘ'} ¿Qué significa esto?
+                  </button>
+                </div>
+
+                {/* Glosario desplegable */}
+                {showGlossary && (
+                  <div className="mt-3 rounded-xl bg-[var(--color-surface-03)] p-3 space-y-0.5 border border-[var(--color-border)]">
+                    <p className="text-[10px] uppercase tracking-wide font-bold text-[var(--color-text-muted)] mb-2">
+                      Glosario de volumen — Dr. Mike Israetel (RP Strength)
+                    </p>
+                    <VolumeTermChip
+                      term="MEV"
+                      color="#f59e0b"
+                      explanation="Mínimo Efectivo de Volumen — el mínimo de series semanales para que el músculo crezca. Por debajo no hay adaptación."
+                    />
+                    <VolumeTermChip
+                      term="MAV"
+                      color="#C8FF00"
+                      explanation="Máximo Adaptativo de Volumen — el punto ideal donde más creces. Entre MEV y MAV es la zona óptima."
+                    />
+                    <VolumeTermChip
+                      term="MRV"
+                      color="#ef4444"
+                      explanation="Máximo Recuperable de Volumen — el límite que tu cuerpo puede absorber. Superarlo produce sobreentrenamiento."
+                    />
+                    <p className="text-[10px] text-[var(--color-text-muted)] pt-2 border-t border-[var(--color-border)] mt-2">
+                      El número junto a cada músculo (ej. 10/16) muestra tus series esta semana vs. tu MAV objetivo.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}

@@ -1,14 +1,18 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { motion } from 'motion/react'
+import { motion, AnimatePresence } from 'motion/react'
 import { getContainer } from '@/infrastructure/container/DIContainer'
 import { formatVolume, formatDate } from '@/shared/utils/formatters'
 import { cn } from '@/shared/utils/cn'
 import { useActiveWorkoutStore } from '@/presentation/features/workout/stores/activeWorkout.store'
 import { useStartWorkout } from '@/presentation/features/workout/hooks/useStartWorkout'
 import { WeeklyVolumeWidget } from '@/presentation/features/progress/components/WeeklyVolumeWidget'
+import { MuscularFatigueMap } from '@/presentation/features/progress/components/MuscularFatigueMap'
+import { WarmupModal } from '@/presentation/features/workout/components/WarmupModal'
 import type { WorkoutSession } from '@/domain/entities/WorkoutSession'
 import type { Routine } from '@/domain/entities/Routine'
+import type { MuscleGroup } from '@/domain/value-objects/MuscleGroup'
 
 function StatCard({ label, value, icon, accent }: { label: string; value: string; icon: string; accent?: boolean }) {
   return (
@@ -110,11 +114,25 @@ function RecentWorkout({ session }: { session: WorkoutSession }) {
   )
 }
 
+// ── Extrae los músculos primarios del día de rutina activo ───────────────────
+function getTodayMuscles(routine: Routine | null | undefined): MuscleGroup[] {
+  if (!routine) return []
+  const today = new Date().getDay()
+  const day = routine.days[today % routine.days.length]
+  if (!day || day.isRestDay) return []
+  // Inferir músculo del exerciseId (convención del seed: empieza con el músculo)
+  return day.exercises
+    .map(ex => ex.exerciseId.split('-')[0] as MuscleGroup)
+    .filter(Boolean)
+    .slice(0, 3)
+}
+
 export function Dashboard() {
   const navigate = useNavigate()
   const container = getContainer()
   const store = useActiveWorkoutStore()
   const startWorkoutMutation = useStartWorkout()
+  const [showWarmup, setShowWarmup] = useState(false)
 
   const { data: athlete } = useQuery({
     queryKey: ['athlete'],
@@ -147,6 +165,23 @@ export function Dashboard() {
 
   const unlockedAchievements = achievements.filter(a => a.isUnlocked).slice(-3).reverse()
   const hasActiveSession = !!store.sessionId
+  const todayMuscles = getTodayMuscles(activeRoutine)
+
+  function handleFabClick() {
+    if (hasActiveSession) {
+      void navigate({ to: '/workout' })
+      return
+    }
+    if (!athlete) return
+    // Mostrar calentamiento antes de iniciar
+    setShowWarmup(true)
+  }
+
+  function startWorkout() {
+    setShowWarmup(false)
+    if (!athlete) return
+    startWorkoutMutation.mutate({ athleteId: athlete.id, routineId: athlete.activeRoutineId })
+  }
 
   return (
     <div className="p-4 space-y-5 max-w-lg mx-auto">
@@ -237,6 +272,9 @@ export function Dashboard() {
         </div>
       )}
 
+      {/* 🧬 Mapa de Fatiga Muscular — feature exclusiva */}
+      {athlete && <MuscularFatigueMap athleteId={athlete.id} />}
+
       {/* Semáforo de volumen semanal */}
       {athlete && <WeeklyVolumeWidget athleteId={athlete.id} />}
 
@@ -285,7 +323,7 @@ export function Dashboard() {
         </div>
       )}
 
-      {/* FAB — Start Workout */}
+      {/* FAB — Start / Resume Workout */}
       <div className="h-4" />
       <motion.div
         className="fixed bottom-20 right-4 z-20"
@@ -294,7 +332,7 @@ export function Dashboard() {
         transition={{ type: 'spring', stiffness: 400, damping: 25, delay: 0.3 }}
       >
         <button
-          onClick={() => hasActiveSession ? void navigate({ to: '/workout' }) : athlete && startWorkoutMutation.mutate({ athleteId: athlete.id, routineId: athlete.activeRoutineId })}
+          onClick={handleFabClick}
           disabled={startWorkoutMutation.isPending}
           className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-black shadow-[var(--shadow-accent)] active:scale-95 transition-transform"
           style={{ backgroundColor: 'var(--color-accent)' }}
@@ -305,6 +343,17 @@ export function Dashboard() {
           ) : hasActiveSession ? '▶' : '⚡'}
         </button>
       </motion.div>
+
+      {/* Modal de calentamiento */}
+      <AnimatePresence>
+        {showWarmup && (
+          <WarmupModal
+            primaryMuscles={todayMuscles}
+            onStart={startWorkout}
+            onSkip={() => { setShowWarmup(false); startWorkout() }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }
