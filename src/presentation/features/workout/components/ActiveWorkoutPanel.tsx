@@ -15,6 +15,7 @@ import { useMutation } from '@tanstack/react-query'
 import type { WorkoutSession } from '@/domain/entities/WorkoutSession'
 import type { CompleteWorkoutSessionResult } from '@/application/commands/CompleteWorkoutSession/CompleteWorkoutSessionHandler'
 import { MUSCLE_GROUP_LABELS } from '@/domain/value-objects/MuscleGroup'
+import { usePastPerformance, type PastExercisePerf } from '../hooks/usePastPerformance'
 import {
   Dumbbell, Target, Layers, Maximize2, Triangle, Grip,
   Zap, Footprints, Circle, Mountain, type LucideIcon,
@@ -341,6 +342,7 @@ function ExerciseBlock({
   onLog,
   isPending,
   activeExerciseId,
+  pastPerf,
 }: {
   ex: ActiveExercise
   isActive: boolean
@@ -348,12 +350,20 @@ function ExerciseBlock({
   onLog: (weight: number, reps: number, rir: number | null) => void
   isPending: boolean
   activeExerciseId: string | null
+  pastPerf?: PastExercisePerf
 }) {
   const isLogging = activeExerciseId === ex.exercise.id
   const isComplete = ex.loggedSets.length >= ex.targetSets
-  const Icon = MUSCLE_ICONS[ex.exercise.primaryMuscles[0] ?? ''] ?? Dumbbell
+  const primaryMuscles = ex.exercise.primaryMuscles ?? []
+  const Icon = MUSCLE_ICONS[primaryMuscles[0] ?? ''] ?? Dumbbell
   const lastSet = ex.loggedSets[ex.loggedSets.length - 1]
   const [showInstructions, setShowInstructions] = useState(false)
+
+  // Modo Sombra: comparar mejor set actual con sesión anterior
+  const currentBestWeight = ex.loggedSets.reduce((max, s) => Math.max(max, s.weight), 0)
+  const shadowDelta = pastPerf && currentBestWeight > 0
+    ? currentBestWeight - pastPerf.bestWeight
+    : null
 
   return (
     <div className={cn('rounded-2xl border overflow-hidden transition-all', isActive ? 'border-[var(--color-accent)]' : 'border-[var(--color-border)]', isComplete && !isLogging ? 'opacity-70' : '')}>
@@ -368,8 +378,8 @@ function ExerciseBlock({
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-sm text-[var(--color-text-primary)] leading-tight">{ex.exercise.nameEs}</p>
           <p className="text-[11px] text-[var(--color-text-muted)]">
-            {ex.exercise.primaryMuscles.map(m => MUSCLE_GROUP_LABELS[m]).join(', ')}
-            {' · '}{ex.targetRepRange.min}–{ex.targetRepRange.max} reps{ex.targetRIR != null ? ` · RIR ${ex.targetRIR}` : ''}
+            {primaryMuscles.map(m => MUSCLE_GROUP_LABELS[m]).join(', ')}
+            {primaryMuscles.length > 0 && ' · '}{ex.targetRepRange.min}–{ex.targetRepRange.max} reps{ex.targetRIR != null ? ` · RIR ${ex.targetRIR}` : ''}
             {' · '}<span className="text-[var(--color-accent)]">{showInstructions ? '▲' : '▼ info'}</span>
           </p>
         </div>
@@ -380,6 +390,26 @@ function ExerciseBlock({
           {isComplete && <span className="text-[var(--color-success)] text-base">✓</span>}
         </div>
       </button>
+
+      {/* Modo Sombra — ghost de la sesión anterior */}
+      {pastPerf && (
+        <div className="px-3 py-1.5 flex items-center gap-2 border-t border-[var(--color-border)]/50 bg-[var(--color-surface-01)]">
+          <span className="text-[9px] font-bold tracking-wider uppercase text-[var(--color-text-muted)]">🫥 Última vez</span>
+          <span className="text-[10px] font-mono text-[var(--color-text-muted)]">
+            {pastPerf.bestWeight > 0 ? `${pastPerf.bestWeight}kg × ${pastPerf.bestReps}` : `${pastPerf.bestReps} reps`}
+            {' · '}{pastPerf.setCount} series
+          </span>
+          {shadowDelta !== null && (
+            <span className={cn(
+              'text-[10px] font-mono font-black ml-auto',
+              shadowDelta > 0 ? 'text-[var(--color-success)]' :
+              shadowDelta < 0 ? 'text-[var(--color-danger)]' : 'text-[var(--color-text-muted)]'
+            )}>
+              {shadowDelta > 0 ? `↑ +${shadowDelta}kg` : shadowDelta < 0 ? `↓ ${shadowDelta}kg` : '= Igual'}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Set table header */}
       {ex.loggedSets.length > 0 && (
@@ -427,17 +457,17 @@ function ExerciseBlock({
             <div className="px-3 pb-3 space-y-2 border-t border-[var(--color-border)] bg-[var(--color-surface-01)]">
               <p className="text-[10px] uppercase tracking-wide font-bold text-[var(--color-text-muted)] pt-2">Instrucciones</p>
               <ol className="space-y-1">
-                {ex.exercise.instructions.map((step, i) => (
+                {(ex.exercise.instructions ?? []).map((step, i) => (
                   <li key={i} className="text-xs text-[var(--color-text-secondary)] flex gap-2">
                     <span className="text-[var(--color-accent)] font-mono font-bold shrink-0">{i + 1}.</span>
                     {step}
                   </li>
                 ))}
               </ol>
-              {ex.exercise.tips.length > 0 && (
+              {(ex.exercise.tips ?? []).length > 0 && (
                 <div className="space-y-1 pt-1">
                   <p className="text-[10px] uppercase tracking-wide font-bold text-[var(--color-text-muted)]">Tips</p>
-                  {ex.exercise.tips.map((tip, i) => (
+                  {(ex.exercise.tips ?? []).map((tip, i) => (
                     <p key={i} className="text-xs text-[var(--color-text-secondary)] flex gap-2">
                       <span>💡</span>{tip}
                     </p>
@@ -518,10 +548,11 @@ function FinishWorkoutModal({ onConfirm, onCancel, isPending, totalSets, elapsed
 }
 
 // ─── Pantalla de resumen post-entrenamiento ────────────────────────────────────
-function WorkoutSummaryOverlay({ result, elapsed, onDismiss }: {
+function WorkoutSummaryOverlay({ result, elapsed, onDismiss, pastTotalVolume }: {
   result: CompleteWorkoutSessionResult
   elapsed: number
   onDismiss: () => void
+  pastTotalVolume?: number
 }) {
   const quote = useMemo(() => randomQuote(), [])
   const sabias = useMemo(() => randomSabias(), [])
@@ -580,6 +611,57 @@ function WorkoutSummaryOverlay({ result, elapsed, onDismiss }: {
             {result.newAchievements.map(name => (
               <p key={name} className="text-sm text-[var(--color-text-primary)] font-semibold">{name}</p>
             ))}
+          </motion.div>
+        )}
+
+        {/* Modo Sombra — comparación con sesión anterior */}
+        {pastTotalVolume != null && pastTotalVolume > 0 && (
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.33 }}
+            className="w-full rounded-2xl p-4 border overflow-hidden"
+            style={{
+              borderColor: result.totalVolumeKg >= pastTotalVolume ? 'rgba(200,255,0,0.3)' : 'rgba(255,70,70,0.3)',
+              background: result.totalVolumeKg >= pastTotalVolume ? 'rgba(200,255,0,0.06)' : 'rgba(255,70,70,0.06)',
+            }}
+          >
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-3">
+              🫥 Tú vs tu yo anterior
+            </p>
+            <div className="flex items-center gap-3">
+              <div className="flex-1 text-center">
+                <p className="font-mono text-xl font-black text-[var(--color-text-primary)]">
+                  {formatVolume(result.totalVolumeKg)}
+                </p>
+                <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">Hoy</p>
+              </div>
+              <div className="text-center px-2">
+                {result.totalVolumeKg >= pastTotalVolume ? (
+                  <p className="text-2xl font-black text-[var(--color-accent)]">
+                    {`+${Math.round(result.totalVolumeKg - pastTotalVolume)}kg`}
+                  </p>
+                ) : (
+                  <p className="text-2xl font-black text-[var(--color-danger)]">
+                    {`-${Math.round(pastTotalVolume - result.totalVolumeKg)}kg`}
+                  </p>
+                )}
+                <p className="text-[9px] text-[var(--color-text-muted)]">volumen</p>
+              </div>
+              <div className="flex-1 text-center">
+                <p className="font-mono text-xl font-bold text-[var(--color-text-muted)]">
+                  {formatVolume(pastTotalVolume)}
+                </p>
+                <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">Última vez</p>
+              </div>
+            </div>
+            <p className="text-center text-xs font-semibold mt-3" style={{
+              color: result.totalVolumeKg >= pastTotalVolume ? 'var(--color-accent)' : 'var(--color-danger)'
+            }}>
+              {result.totalVolumeKg >= pastTotalVolume
+                ? '¡Superaste tu sesión anterior! 🏆'
+                : 'La próxima lo superas 💪'}
+            </p>
           </motion.div>
         )}
 
@@ -763,6 +845,12 @@ export function ActiveWorkoutPanel() {
     recordSetMutation.mutate({ exerciseIndex, weight, reps, rir })
   }, [recordSetMutation])
 
+  // ── Modo Sombra: rendimiento de la sesión anterior ────────────────────────
+  const { data: pastPerf } = usePastPerformance(
+    store.session?.athleteId,
+    store.session?.routineId,
+  )
+
   // ── Elapsed time (re-renders every minute) ────────────────────────────────
   const [, setTick] = useState(0)
   useEffect(() => {
@@ -838,6 +926,7 @@ export function ActiveWorkoutPanel() {
               ex={ex}
               isActive={i === store.currentExerciseIndex}
               activeExerciseId={activeExerciseId}
+              pastPerf={pastPerf?.get(ex.exercise.id)}
               onAddSet={() => {
                 store.setCurrentExercise(i)
                 setActiveExerciseId(prev => prev === ex.exercise.id ? null : ex.exercise.id)
@@ -896,6 +985,10 @@ export function ActiveWorkoutPanel() {
         <WorkoutSummaryOverlay
           result={workoutResult}
           elapsed={elapsed}
+          pastTotalVolume={pastPerf
+            ? Array.from(pastPerf.values()).reduce((sum, p) => sum + p.totalVolume, 0)
+            : undefined
+          }
           onDismiss={() => {
             localStorage.removeItem(STORAGE_KEY)
             store.reset()

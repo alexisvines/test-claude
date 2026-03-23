@@ -3,7 +3,6 @@ import { useNavigate } from '@tanstack/react-router'
 import { getContainer } from '@/infrastructure/container/DIContainer'
 import { useActiveWorkoutStore } from '@/presentation/features/workout/stores/activeWorkout.store'
 import type { WorkoutSession } from '@/domain/entities/WorkoutSession'
-import type { Exercise } from '@/domain/entities/Exercise'
 
 interface StartWorkoutParams {
   athleteId: string
@@ -42,14 +41,22 @@ export function useStartWorkout() {
                 container.exerciseRepo.findById(ex.exerciseId).catch(() => null)
               )
             )
-            store.setExercises(todayDay.exercises.map((ex, i) => ({
-              exercise: exerciseDetails[i] ?? ({ id: ex.exerciseId } as Exercise),
-              targetSets: ex.sets,
-              targetRepRange: ex.repRange,
-              targetRIR: ex.rirTarget,
-              restSeconds: ex.restSeconds,
-              loggedSets: [],
-            })))
+            store.setExercises(
+              todayDay.exercises
+                .map((ex, i) => {
+                  const detail = exerciseDetails[i]
+                  if (!detail) return null
+                  return {
+                    exercise: detail,
+                    targetSets: ex.sets,
+                    targetRepRange: ex.repRange,
+                    targetRIR: ex.rirTarget,
+                    restSeconds: ex.restSeconds,
+                    loggedSets: [],
+                  }
+                })
+                .filter(Boolean) as Parameters<typeof store.setExercises>[0]
+            )
           }
         }
       }

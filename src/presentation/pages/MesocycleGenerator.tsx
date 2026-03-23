@@ -433,9 +433,11 @@ export function MesocycleGeneratorPage() {
     },
     onSuccess: (data) => {
       setResult(data)
-      // Invalidar queries para que el dashboard y rutinas se actualicen
-      void queryClient.invalidateQueries({ queryKey: ['routine'] })
+      void queryClient.invalidateQueries({ queryKey: ['routines'] })
       void queryClient.invalidateQueries({ queryKey: ['athlete'] })
+    },
+    onError: () => {
+      // Error genérico — el handler ya tiene fallback offline, esto no debería ocurrir
     },
   })
 
@@ -531,12 +533,12 @@ export function MesocycleGeneratorPage() {
         </div>
       )}
 
-      {/* Info BYOK — paso 5 */}
+      {/* Info modo de generación — paso 5 */}
       {step === 5 && (
         <div className="rounded-[var(--radius-md)] p-3 bg-[var(--color-surface-02)] border border-[var(--color-border)] text-xs text-[var(--color-text-muted)]">
           {localStorage.getItem('kova_gemini_key')
-            ? '🤖 Usando Gemini AI con tu clave — plan personalizado de alta calidad'
-            : '📋 Sin clave Gemini — se generará un plan básico offline. Añade tu clave gratuita en Ajustes para planes con IA.'}
+            ? '🤖 Usando Gemini AI — mesociclo personalizado de alta calidad'
+            : '✅ Listo para generar — tu mesociclo estará listo en segundos'}
         </div>
       )}
 
