@@ -13,6 +13,7 @@ import { WarmupModal } from '@/presentation/features/workout/components/WarmupMo
 import type { WorkoutSession } from '@/domain/entities/WorkoutSession'
 import type { Routine } from '@/domain/entities/Routine'
 import type { MuscleGroup } from '@/domain/value-objects/MuscleGroup'
+import { APP_VERSION } from '@/shared/version'
 
 function StatCard({ label, value, icon, accent }: { label: string; value: string; icon: string; accent?: boolean }) {
   return (
@@ -198,7 +199,7 @@ export function Dashboard() {
           </h1>
           <div className="flex items-center gap-2">
             <p className="text-sm text-[var(--color-accent)]">{athlete?.levelLabel ?? 'Novato'}</p>
-            <span className="text-[10px] text-[var(--color-text-muted)] font-mono">v0.4</span>
+            <span className="text-[10px] text-[var(--color-text-muted)] font-mono">v{APP_VERSION}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
