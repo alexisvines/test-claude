@@ -121,6 +121,8 @@ export function MuscleDiagram({
 
   const wrapperStyle: React.CSSProperties = {
     display: 'flex',
+    maxWidth: '100%',
+    overflow: 'hidden',
     background: 'radial-gradient(ellipse at center, #1a2535 60%, #0d1117 100%)',
     borderRadius: '12px',
     padding: '8px',

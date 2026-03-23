@@ -199,7 +199,7 @@ export function MuscularFatigueMap({ athleteId }: { athleteId: string }) {
                 <MuscleDiagram
                   primary={[]}
                   secondary={[]}
-                  size="lg"
+                  size="md"
                   colorOverride={colorOverride}
                 />
               </div>

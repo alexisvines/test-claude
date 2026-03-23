@@ -145,15 +145,16 @@ function RoutineCard({ routine, onDelete, onSetActive, isActive, onStartWorkout,
   onStartWorkout: () => void
   startPending: boolean
 }) {
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const muscles = getRoutineMuscles(routine)
   const today = new Date().getDay()
   const daysLen = routine.days.length
   const todayDay = daysLen > 0 ? routine.days[today % daysLen] : undefined
   const hasTodayWorkout = todayDay && !todayDay.isRestDay
+  const isEmpty = routine.totalExercises === 0
 
   return (
     <motion.div
-      layout
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
@@ -178,16 +179,33 @@ function RoutineCard({ routine, onDelete, onSetActive, isActive, onStartWorkout,
               )}
             </div>
             {routine.description && (
-              <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">{routine.description}</p>
+              <p className="text-xs text-[var(--color-text-primary)]/70 mt-0.5">{routine.description}</p>
             )}
           </div>
-          <button
-            onClick={onDelete}
-            className="text-[var(--color-text-muted)] hover:text-red-400 transition-colors p-1 shrink-0"
-            aria-label="Eliminar rutina"
-          >
-            ✕
-          </button>
+          {confirmDelete ? (
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                onClick={() => { onDelete(); setConfirmDelete(false) }}
+                className="text-[10px] font-bold px-2 py-1 rounded-lg bg-[var(--color-danger)] text-white"
+              >
+                Sí, eliminar
+              </button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="min-w-[36px] min-h-[36px] flex items-center justify-center text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center text-[var(--color-danger)] hover:opacity-70 transition-opacity shrink-0"
+              aria-label="Eliminar rutina"
+            >
+              🗑
+            </button>
+          )}
         </div>
 
         {/* Stats row */}
@@ -239,18 +257,24 @@ function RoutineCard({ routine, onDelete, onSetActive, isActive, onStartWorkout,
               Activar rutina
             </button>
           )}
-          <button
-            onClick={onStartWorkout}
-            disabled={startPending}
-            className="flex-1 py-2.5 rounded-xl text-sm font-black text-black flex items-center justify-center gap-1.5 active:scale-95 transition-transform disabled:opacity-70"
-            style={{ backgroundColor: 'var(--color-accent)' }}
-          >
-            {startPending ? (
-              <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <>⚡ Entrenar ahora</>
-            )}
-          </button>
+          {isEmpty ? (
+            <div className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-[var(--color-text-muted)] bg-[var(--color-surface-03)] border border-[var(--color-border)] text-center">
+              🧙 Agrega ejercicios con el Asistente
+            </div>
+          ) : (
+            <button
+              onClick={onStartWorkout}
+              disabled={startPending}
+              className="flex-1 py-2.5 rounded-xl text-sm font-black text-black flex items-center justify-center gap-1.5 active:scale-95 transition-transform disabled:opacity-70"
+              style={{ backgroundColor: 'var(--color-accent)' }}
+            >
+              {startPending ? (
+                <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <>⚡ Entrenar ahora</>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </motion.div>

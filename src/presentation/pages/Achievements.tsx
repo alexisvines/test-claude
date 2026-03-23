@@ -13,6 +13,14 @@ const CATEGORY_LABELS: Record<string, string> = {
   'consistency': 'Consistencia',
 }
 
+const CATEGORY_MOTIVATION: Record<string, string> = {
+  'first-time': '💪 Completa tu primer entrenamiento',
+  'streak': '🔥 Entrena días consecutivos',
+  'volume': '📈 Acumula más volumen total',
+  'personal-records': '⭐ Supera tus marcas personales',
+  'consistency': '📅 Mantén la constancia semana a semana',
+}
+
 function AchievementCard({ achievement }: { achievement: Achievement }) {
   return (
     <motion.div
@@ -43,7 +51,9 @@ function AchievementCard({ achievement }: { achievement: Achievement }) {
         </p>
       )}
       {!achievement.isUnlocked && (
-        <p className="text-xs text-[var(--color-text-muted)] mt-2">Bloqueado 🔒</p>
+        <p className="text-xs text-[var(--color-text-muted)] mt-2">
+          {CATEGORY_MOTIVATION[achievement.category] ?? '🎯 Sigue entrenando para desbloquear'}
+        </p>
       )}
     </motion.div>
   )

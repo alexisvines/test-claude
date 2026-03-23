@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getContainer } from '@/infrastructure/container/DIContainer'
 import { Button } from '@/presentation/design-system/components/Button'
 import { cn } from '@/shared/utils/cn'
+import { APP_VERSION } from '@/shared/version'
 
 function SettingRow({ label, description, children }: {
   label: string
@@ -163,7 +164,7 @@ export function SettingsPage() {
             </Button>
           </SettingRow>
           <SettingRow label="Versión de app" description="Kova PWA">
-            <span className="font-mono text-sm text-[var(--color-text-secondary)]">1.0.0</span>
+            <span className="font-mono text-sm text-[var(--color-text-secondary)]">{APP_VERSION}</span>
           </SettingRow>
         </div>
       </section>
