@@ -9,6 +9,7 @@ const RoutinesPage = lazy(() => import('./presentation/pages/Routines').then(m =
 const ProgressPage = lazy(() => import('./presentation/pages/Progress').then(m => ({ default: m.ProgressPage })))
 const AchievementsPage = lazy(() => import('./presentation/pages/Achievements').then(m => ({ default: m.AchievementsPage })))
 const SettingsPage = lazy(() => import('./presentation/pages/Settings').then(m => ({ default: m.SettingsPage })))
+const MesocycleGeneratorPage = lazy(() => import('./presentation/pages/MesocycleGenerator').then(m => ({ default: m.MesocycleGeneratorPage })))
 
 function PageLoader() {
   return (
@@ -80,6 +81,12 @@ const settingsRoute = createRoute({
   component: withSuspense(SettingsPage),
 })
 
+const mesocycleRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/plan',
+  component: withSuspense(MesocycleGeneratorPage),
+})
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   dashboardRoute,
@@ -89,6 +96,7 @@ const routeTree = rootRoute.addChildren([
   progressRoute,
   achievementsRoute,
   settingsRoute,
+  mesocycleRoute,
 ])
 
 export const router = createRouter({

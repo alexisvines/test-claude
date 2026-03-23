@@ -1,5 +1,6 @@
 import type { IAIEvaluationPort, WorkoutContext, AIWorkoutEvaluation } from '../../application/ports/IAIEvaluationPort'
 import { OfflineAIAdapter } from './OfflineAIAdapter'
+import type { GenerateMesocycleCommand, MesocycleAIResponse } from '../../application/commands/GenerateMesocycle/GenerateMesocycleCommand'
 
 const SYSTEM_PROMPT = `Eres un coach de fuerza experto certificado (NSCA-CSCS) que habla español.
 Analiza entrenamientos de forma directa, práctica y motivadora.
@@ -117,6 +118,70 @@ Responde ÚNICAMENTE con este JSON (sin markdown, sin explicaciones fuera del JS
     if (!response.ok) throw new Error(`Gemini API error: ${response.status}`)
     const data = await response.json() as GeminiResponse
     return data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+  }
+
+  async generateMesocycle(command: GenerateMesocycleCommand): Promise<MesocycleAIResponse | null> {
+    if (!this.apiKey) return null
+    const goalLabels: Record<string, string> = {
+      strength: 'Fuerza máxima', hypertrophy: 'Hipertrofia', 'strength-hypertrophy': 'Fuerza + músculo',
+    }
+    const levelLabels: Record<string, string> = {
+      beginner: 'Principiante (<1 año)', intermediate: 'Intermedio (1-3 años)', advanced: 'Avanzado (3+ años)',
+    }
+    const equipmentLabels: Record<string, string> = {
+      barbell: 'Barra + discos', dumbbell: 'Mancuernas', machines: 'Máquinas', bodyweight: 'Peso corporal',
+    }
+    const prs = command.currentPRs
+      ? `Sentadilla: ${command.currentPRs.squat ?? 'N/A'}kg, Press banca: ${command.currentPRs.bench ?? 'N/A'}kg, Peso muerto: ${command.currentPRs.deadlift ?? 'N/A'}kg`
+      : 'No proporcionados'
+
+    const prompt = `Eres un coach certificado NSCA-CSCS. Genera un mesociclo de entrenamiento de fuerza de 8 semanas.
+
+OBJETIVO: ${goalLabels[command.goal] ?? command.goal}
+EQUIPO: ${command.equipment.map(e => equipmentLabels[e] ?? e).join(', ')}
+DÍAS POR SEMANA: ${command.daysPerWeek}
+NIVEL: ${levelLabels[command.level] ?? command.level}
+PRs ACTUALES: ${prs}
+
+Reglas:
+- Los días de descanso tienen isRestDay: true y exercises: []
+- Los exerciseId deben ser slugs en inglés con guiones (ej: barbell-bench-press, barbell-squat, dumbbell-curl)
+- Incluye semana de deload en la semana 8 (rirTarget 3-4, sets reducidos)
+- El array "days" tiene exactamente 7 elementos (días de la semana, lunes a domingo)
+- restSeconds: 90-240 según intensidad
+- progressionMethod: "double-progression" o "linear"
+
+Responde ÚNICAMENTE con JSON válido (sin markdown):
+{
+  "name": "Mesociclo IA — <objetivo> 8 semanas",
+  "weeks": 8,
+  "days": [
+    {
+      "name": "Día A — Empuje",
+      "isRestDay": false,
+      "exercises": [
+        {
+          "exerciseId": "barbell-bench-press",
+          "sets": 4,
+          "repRangeMin": 6,
+          "repRangeMax": 10,
+          "rirTarget": 2,
+          "restSeconds": 180,
+          "progressionMethod": "double-progression"
+        }
+      ]
+    },
+    { "name": "Descanso", "isRestDay": true, "exercises": [] }
+  ]
+}`
+
+    try {
+      const raw = await this.callGemini(prompt, true)
+      const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+      return JSON.parse(cleaned) as MesocycleAIResponse
+    } catch {
+      return null
+    }
   }
 
   private parseEvaluation(raw: string): AIWorkoutEvaluation {

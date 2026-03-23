@@ -8,6 +8,7 @@ import { getContainer } from '@/infrastructure/container/DIContainer'
 import { formatDate } from '@/shared/utils/formatters'
 import { cn } from '@/shared/utils/cn'
 import { WorkoutCalendar } from '@/presentation/features/progress/components/WorkoutCalendar'
+import { PRProjectionPanel } from '@/presentation/features/progress/components/PRProjectionPanel'
 
 type Period = '1m' | '3m' | '6m' | '1y' | 'all'
 
@@ -210,6 +211,16 @@ export function ProgressPage() {
       <div className="pt-2">
         <h1 className="font-display text-3xl font-bold text-[var(--color-text-primary)]">Progreso</h1>
       </div>
+
+      {/* Proyección de PR */}
+      {athlete && (
+        <div className="space-y-3">
+          <h2 className="font-display text-lg font-bold text-[var(--color-text-secondary)] uppercase tracking-wide">
+            Proyección de marca personal
+          </h2>
+          <PRProjectionPanel athleteId={athlete.id} />
+        </div>
+      )}
 
       {/* Monthly Calendar */}
       <div className="space-y-3">

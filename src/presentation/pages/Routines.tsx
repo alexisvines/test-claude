@@ -1,5 +1,6 @@
 import { useState, Component, type ErrorInfo, type ReactNode } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
 import { motion, AnimatePresence } from 'motion/react'
 import { getContainer } from '@/infrastructure/container/DIContainer'
 import { Routine, type RoutineDay } from '@/domain/entities/Routine'
@@ -459,6 +460,7 @@ function TemplateCard({ template, onImport, isPending }: {
 export function RoutinesPage() {
   const container = getContainer()
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const [showCreate, setShowCreate] = useState(false)
   const [showWizard, setShowWizard] = useState(false)
   const [showPersonalized, setShowPersonalized] = useState(false)
@@ -572,6 +574,29 @@ export function RoutinesPage() {
             style={{ backgroundColor: 'var(--color-accent)' }}
           >
             Crear →
+          </button>
+        </div>
+      </div>
+
+      {/* AI Mesocycle CTA */}
+      <div className="rounded-2xl border overflow-hidden" style={{ borderColor: '#7c3aed40' }}>
+        <div
+          className="p-4 flex items-center gap-4"
+          style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.15) 0%, rgba(124,58,237,0.03) 100%)' }}
+        >
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shrink-0" style={{ backgroundColor: 'rgba(124,58,237,0.3)' }}>
+            🧠
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-[var(--color-text-primary)]">Generar con IA</p>
+            <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">Mesociclo 8 semanas · periodizado · con deload</p>
+          </div>
+          <button
+            onClick={() => void navigate({ to: '/plan' })}
+            className="shrink-0 px-3 py-2 rounded-xl text-xs font-black text-white"
+            style={{ backgroundColor: '#7c3aed' }}
+          >
+            Generar →
           </button>
         </div>
       </div>
