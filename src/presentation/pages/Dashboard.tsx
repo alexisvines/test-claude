@@ -200,20 +200,23 @@ export function Dashboard() {
           {athlete ? (
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <p className="text-sm text-[var(--color-accent)] font-semibold">{athlete.levelLabel}</p>
-                <span className="text-[10px] text-[var(--color-text-muted)] font-mono">
-                  {athlete.xpToNextLevel > 0 ? `+${athlete.xpToNextLevel} XP para subir` : '¡Nivel máximo!'}
-                </span>
+                <p className="text-sm font-bold" style={{ color: 'var(--color-accent)' }}>
+                  {athlete.levelIcon} {athlete.levelLabel}
+                </p>
               </div>
-              {/* Barra de progreso de nivel */}
-              <div className="flex items-center gap-2">
-                <div className="w-28 h-1.5 bg-[var(--color-surface-03)] rounded-full overflow-hidden">
+              <p className="text-[10px] text-[var(--color-text-muted)] italic">{athlete.levelLore}</p>
+              {/* Barra de progreso XP */}
+              <div className="flex items-center gap-2 pt-0.5">
+                <div className="w-24 h-1 bg-[var(--color-surface-03)] rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all duration-700"
                     style={{ width: `${Math.round(athlete.levelProgress * 100)}%`, backgroundColor: 'var(--color-accent)' }}
                   />
                 </div>
-                <span className="text-[10px] text-[var(--color-text-muted)] font-mono">v{APP_VERSION}</span>
+                <span className="text-[9px] text-[var(--color-text-muted)] font-mono">
+                  {athlete.xpToNextLevel > 0 ? `${athlete.xpToNextLevel} XP` : '⚡ MAX'}
+                </span>
+                <span className="text-[9px] text-[var(--color-text-muted)] font-mono ml-auto">v{APP_VERSION}</span>
               </div>
             </div>
           ) : (
@@ -221,8 +224,8 @@ export function Dashboard() {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-12 h-12 rounded-full bg-[var(--color-surface-03)] flex items-center justify-center text-2xl">
-            {athlete?.level === 'leyenda' ? '🌟' : athlete?.level === 'elite' ? '💎' : '🏋️'}
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${athlete?.level === 'leyenda' ? 'bg-yellow-900/40 ring-2 ring-yellow-500/50' : athlete?.level === 'elite' ? 'bg-purple-900/40 ring-2 ring-purple-500/30' : 'bg-[var(--color-surface-03)]'}`}>
+            {athlete?.levelIcon ?? '⛓️'}
           </div>
           <button
             onClick={() => void navigate({ to: '/settings' })}

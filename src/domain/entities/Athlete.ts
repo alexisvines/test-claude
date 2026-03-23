@@ -26,13 +26,34 @@ export interface AthleteProps {
   activeRoutineId?: string
 }
 
+// Jerarquía vikinga: de thrall (siervo) a einherjar (guerrero de Valhalla)
 export const LEVEL_LABELS: Record<AthleteLevel, string> = {
-  novato: 'Novato',
-  principiante: 'Principiante',
-  intermedio: 'Intermedio',
-  avanzado: 'Avanzado',
-  elite: 'Elite',
-  leyenda: 'Leyenda',
+  novato:        'Thrall',      // Siervo — recién comienza su camino
+  principiante:  'Karl',        // Hombre libre — ya forja su fuerza
+  intermedio:    'Vikingo',     // Guerrero — surca los mares y el hierro
+  avanzado:      'Hersir',      // Líder de guerra — comanda con fuerza
+  elite:         'Jarl',        // Señor del clan — temido y respetado
+  leyenda:       'Einherjar',   // Elegido de Odín — guerrero del Valhalla
+}
+
+// Emojis para cada rango vikingo
+export const LEVEL_ICONS: Record<AthleteLevel, string> = {
+  novato:        '⛓️',
+  principiante:  '🛡️',
+  intermedio:    '⚔️',
+  avanzado:      '🪓',
+  elite:         '👑',
+  leyenda:       '⚡',
+}
+
+// Descripción breve de cada rango
+export const LEVEL_LORE: Record<AthleteLevel, string> = {
+  novato:        'Siervo — tu saga apenas comienza',
+  principiante:  'Hombre libre — forjas tu camino',
+  intermedio:    'Guerrero — el hierro te conoce',
+  avanzado:      'Líder de guerra — guías con fuerza',
+  elite:         'Señor del clan — temido y respetado',
+  leyenda:       'Elegido de Odín — te aguarda el Valhalla',
 }
 
 /**
@@ -115,6 +136,14 @@ export class Athlete {
 
   get levelLabel(): string {
     return LEVEL_LABELS[this.level]
+  }
+
+  get levelIcon(): string {
+    return LEVEL_ICONS[this.level]
+  }
+
+  get levelLore(): string {
+    return LEVEL_LORE[this.level]
   }
 
   /** XP que falta para subir al siguiente nivel (0 si es leyenda) */
