@@ -197,10 +197,28 @@ export function Dashboard() {
           <h1 className="font-display text-3xl font-bold text-[var(--color-text-primary)]">
             {athlete?.name ?? 'Atleta'}
           </h1>
-          <div className="flex items-center gap-2">
-            <p className="text-sm text-[var(--color-accent)]">{athlete?.levelLabel ?? 'Novato'}</p>
+          {athlete ? (
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-[var(--color-accent)] font-semibold">{athlete.levelLabel}</p>
+                <span className="text-[10px] text-[var(--color-text-muted)] font-mono">
+                  {athlete.xpToNextLevel > 0 ? `+${athlete.xpToNextLevel} XP para subir` : '¡Nivel máximo!'}
+                </span>
+              </div>
+              {/* Barra de progreso de nivel */}
+              <div className="flex items-center gap-2">
+                <div className="w-28 h-1.5 bg-[var(--color-surface-03)] rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{ width: `${Math.round(athlete.levelProgress * 100)}%`, backgroundColor: 'var(--color-accent)' }}
+                  />
+                </div>
+                <span className="text-[10px] text-[var(--color-text-muted)] font-mono">v{APP_VERSION}</span>
+              </div>
+            </div>
+          ) : (
             <span className="text-[10px] text-[var(--color-text-muted)] font-mono">v{APP_VERSION}</span>
-          </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <div className="w-12 h-12 rounded-full bg-[var(--color-surface-03)] flex items-center justify-center text-2xl">

@@ -26,15 +26,6 @@ export interface AthleteProps {
   activeRoutineId?: string
 }
 
-export const LEVEL_THRESHOLDS: Record<AthleteLevel, number> = {
-  novato: 0,
-  principiante: 10,
-  intermedio: 25,
-  avanzado: 100,
-  elite: 250,
-  leyenda: 500,
-}
-
 export const LEVEL_LABELS: Record<AthleteLevel, string> = {
   novato: 'Novato',
   principiante: 'Principiante',
@@ -44,12 +35,42 @@ export const LEVEL_LABELS: Record<AthleteLevel, string> = {
   leyenda: 'Leyenda',
 }
 
-function getLevelFromSessions(sessions: number): AthleteLevel {
-  if (sessions >= 500) return 'leyenda'
-  if (sessions >= 250) return 'elite'
-  if (sessions >= 100) return 'avanzado'
-  if (sessions >= 25) return 'intermedio'
-  if (sessions >= 10) return 'principiante'
+/**
+ * Puntuación compuesta que refleja la experiencia real del atleta.
+ *
+ * Fórmula:
+ *   XP = sesiones×10 + PRs×5 + toneladasVolumen×2 + rachaMaxima×1
+ *
+ * Ejemplos orientativos:
+ *   5 sesiones, 0 PRs, 1 ton  → ~51 XP → Principiante
+ *   25 sesiones, 10 PRs, 5 ton → ~310 XP → Intermedio
+ *   100 sesiones, 40 PRs, 50 ton → ~1150 XP → Avanzado
+ */
+export function calculateAthleteXP(stats: AthleteStats): number {
+  return (
+    stats.totalSessions * 10 +
+    stats.totalPRs * 5 +
+    Math.floor(stats.totalVolumeTons) * 2 +
+    stats.longestStreakDays * 1
+  )
+}
+
+// Umbrales en XP (no en sesiones)
+export const LEVEL_XP_THRESHOLDS: Record<AthleteLevel, number> = {
+  novato:        0,
+  principiante:  50,
+  intermedio:    250,
+  avanzado:      1000,
+  elite:         4000,
+  leyenda:       10000,
+}
+
+function getLevelFromXP(xp: number): AthleteLevel {
+  if (xp >= 10000) return 'leyenda'
+  if (xp >= 4000)  return 'elite'
+  if (xp >= 1000)  return 'avanzado'
+  if (xp >= 250)   return 'intermedio'
+  if (xp >= 50)    return 'principiante'
   return 'novato'
 }
 
@@ -84,19 +105,35 @@ export class Athlete {
   get createdAt(): Date { return this.props.createdAt }
   get activeRoutineId(): string | undefined { return this.props.activeRoutineId }
 
+  get xp(): number {
+    return calculateAthleteXP(this.props.stats)
+  }
+
   get level(): AthleteLevel {
-    return getLevelFromSessions(this.props.stats.totalSessions)
+    return getLevelFromXP(this.xp)
   }
 
   get levelLabel(): string {
     return LEVEL_LABELS[this.level]
   }
 
+  /** XP que falta para subir al siguiente nivel (0 si es leyenda) */
   get xpToNextLevel(): number {
-    const levels = Object.entries(LEVEL_THRESHOLDS) as [AthleteLevel, number][]
-    const current = this.props.stats.totalSessions
-    const nextThreshold = levels.find(([, threshold]) => threshold > current)
-    return nextThreshold ? nextThreshold[1] - current : 0
+    const current = this.xp
+    const thresholds = Object.values(LEVEL_XP_THRESHOLDS).sort((a, b) => a - b)
+    const next = thresholds.find(t => t > current)
+    return next !== undefined ? next - current : 0
+  }
+
+  /** Progreso dentro del nivel actual (0-1) para barra de XP */
+  get levelProgress(): number {
+    const entries = Object.entries(LEVEL_XP_THRESHOLDS).sort((a, b) => a[1] - b[1]) as [AthleteLevel, number][]
+    const current = this.xp
+    const currentIdx = entries.findIndex(([l]) => l === this.level)
+    const currentThreshold = entries[currentIdx]?.[1] ?? 0
+    const nextThreshold = entries[currentIdx + 1]?.[1]
+    if (nextThreshold === undefined) return 1
+    return Math.min(1, (current - currentThreshold) / (nextThreshold - currentThreshold))
   }
 
   recordWorkout(volumeKg: number): void {
