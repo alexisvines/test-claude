@@ -22,19 +22,19 @@ function buildOfflinePlan(command: GenerateMesocycleCommand): MesocycleAIRespons
   const hasDumbbell = command.equipment.includes('dumbbell')
 
   const pushExercises = [
-    hasBarbell ? 'barbell-bench-press' : 'dumbbell-bench-press',
-    hasDumbbell ? 'dumbbell-shoulder-press' : 'barbell-overhead-press',
-    'tricep-pushdown',
+    hasBarbell ? 'chest-barbell-bench-press' : 'chest-dumbbell-bench-press',
+    hasDumbbell ? 'shoulders-dumbbell-shoulder-press' : 'shoulders-overhead-press',
+    'triceps-cable-pushdown',
   ]
   const pullExercises = [
-    hasBarbell ? 'barbell-row' : 'dumbbell-row',
-    'lat-pulldown',
-    hasDumbbell ? 'dumbbell-curl' : 'barbell-curl',
+    hasBarbell ? 'back-barbell-row' : 'back-dumbbell-row',
+    'back-lat-pulldown',
+    hasDumbbell ? 'biceps-dumbbell-curl' : 'biceps-barbell-curl',
   ]
   const legExercises = [
-    hasBarbell ? 'barbell-squat' : 'goblet-squat',
-    hasBarbell ? 'romanian-deadlift' : 'dumbbell-romanian-deadlift',
-    'leg-press',
+    hasBarbell ? 'quads-squat' : 'quads-goblet-squat',
+    'back-romanian-deadlift',
+    'quads-leg-press',
   ]
 
   const makeDay = (name: string, exerciseIds: string[], setsOverride = 3) => ({

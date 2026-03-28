@@ -34,7 +34,17 @@ export function useStartWorkout() {
         const routine = await container.routineRepo.findById(routineId).catch(() => null)
         if (routine) {
           const today = new Date().getDay()
-          const todayDay = routine.days[today % routine.days.length]
+          const numDays = routine.days.length
+          const startIdx = today % numDays
+          // Si el día de hoy es descanso, buscar el siguiente día de entrenamiento
+          let todayDay = null
+          for (let i = 0; i < numDays; i++) {
+            const candidate = routine.days[(startIdx + i) % numDays]
+            if (candidate && !candidate.isRestDay) {
+              todayDay = candidate
+              break
+            }
+          }
           if (todayDay && !todayDay.isRestDay) {
             const exerciseDetails = await Promise.all(
               todayDay.exercises.map(ex =>
