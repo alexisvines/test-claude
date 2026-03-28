@@ -134,6 +134,9 @@ export function Dashboard() {
   const store = useActiveWorkoutStore()
   const startWorkoutMutation = useStartWorkout()
   const [showWarmup, setShowWarmup] = useState(false)
+  const [avatar] = useState<string | null>(
+    () => { try { return localStorage.getItem('kova_avatar') } catch { return null } }
+  )
 
   const { data: athlete } = useQuery({
     queryKey: ['athlete'],
@@ -224,9 +227,18 @@ export function Dashboard() {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${athlete?.level === 'leyenda' ? 'bg-yellow-900/40 ring-2 ring-yellow-500/50' : athlete?.level === 'elite' ? 'bg-purple-900/40 ring-2 ring-purple-500/30' : 'bg-[var(--color-surface-03)]'}`}>
-            {athlete?.levelIcon ?? '⛓️'}
-          </div>
+          {avatar ? (
+            <img
+              src={avatar}
+              alt="Perfil"
+              className="w-12 h-12 rounded-full object-cover"
+              style={{ border: '2px solid var(--color-accent)' }}
+            />
+          ) : (
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${athlete?.level === 'leyenda' ? 'bg-yellow-900/40 ring-2 ring-yellow-500/50' : athlete?.level === 'elite' ? 'bg-purple-900/40 ring-2 ring-purple-500/30' : 'bg-[var(--color-surface-03)]'}`}>
+              {athlete?.levelIcon ?? '⛓️'}
+            </div>
+          )}
           <button
             onClick={() => void navigate({ to: '/settings' })}
             className="w-10 h-10 rounded-full bg-[var(--color-surface-02)] flex items-center justify-center text-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"

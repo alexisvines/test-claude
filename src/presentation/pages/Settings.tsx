@@ -69,6 +69,21 @@ export function SettingsPage() {
 
   const [name, setName] = useState(athlete?.name ?? '')
   const [unit, setUnit] = useState<'kg' | 'lb'>(athlete?.weightUnit ?? 'kg')
+  const [avatar, setAvatar] = useState<string | null>(
+    () => localStorage.getItem('kova_avatar')
+  )
+
+  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const dataUrl = reader.result as string
+      localStorage.setItem('kova_avatar', dataUrl)
+      setAvatar(dataUrl)
+    }
+    reader.readAsDataURL(file)
+  }
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -108,6 +123,51 @@ export function SettingsPage() {
       <section className="space-y-1">
         <h2 className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide mb-4">Perfil</h2>
         <div className="bg-[var(--color-surface-02)] rounded-[var(--radius-lg)] px-4">
+          {/* Foto de perfil */}
+          <div className="flex flex-col items-center py-5 gap-3 border-b border-[var(--color-border)]">
+            <div className="relative w-20 h-20">
+              {avatar ? (
+                <img
+                  src={avatar}
+                  alt="Foto de perfil"
+                  className="w-20 h-20 rounded-full object-cover border-2"
+                  style={{ borderColor: 'var(--color-accent)' }}
+                />
+              ) : (
+                <div
+                  className="w-20 h-20 rounded-full flex items-center justify-center text-3xl font-black border-2"
+                  style={{ backgroundColor: 'var(--color-surface-03)', borderColor: 'var(--color-border)', color: 'var(--color-accent)' }}
+                >
+                  {name.charAt(0).toUpperCase() || 'A'}
+                </div>
+              )}
+              <label
+                htmlFor="avatar-upload"
+                className="absolute bottom-0 right-0 w-7 h-7 rounded-full flex items-center justify-center cursor-pointer text-sm"
+                style={{ backgroundColor: 'var(--color-accent)' }}
+              >
+                📷
+              </label>
+            </div>
+            <p className="text-xs text-[var(--color-text-muted)]">
+              {avatar ? 'Toca 📷 para cambiar' : 'Sube tu foto de perfil'}
+            </p>
+            <input
+              id="avatar-upload"
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
+            {avatar && (
+              <button
+                onClick={() => { localStorage.removeItem('kova_avatar'); setAvatar(null) }}
+                className="text-[10px] text-[var(--color-danger)]"
+              >
+                Eliminar foto
+              </button>
+            )}
+          </div>
           <SettingRow label="Nombre" description="Tu nombre de atleta">
             <input
               type="text"
